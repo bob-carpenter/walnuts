@@ -688,8 +688,10 @@ def WALNUTS(lpFun,
                     else:
                         stopCode = -4
                     
-                    qProp = qPropLast
-                    Ndoubl = i
+                
+                    #qProp = qPropLast
+                    #Ndoubl = i
+                    Ndoubl = i+1
                     break
             else:
                 if(debug):
