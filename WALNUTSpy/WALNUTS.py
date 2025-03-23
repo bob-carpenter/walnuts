@@ -404,13 +404,13 @@ def WALNUTS(lpFun,
                         break
                 
                 # done building orbit, now check stop condition:
-                #if(stopCondition(qm,vm,qp,vp)):
-                #    expandFurther = False
+                if(stopCondition(qm,vm,qp,vp)):
+                    expandFurther = False
                 #    qProp = qc
                 #    L_ = 0
-                #    Ndoubl = 0
-                #    stopCode = 1
-                #    break
+                    Ndoubl = 1
+                    stopCode = 1
+                    break
                 
             else: # more than a single integration step, these require sub-u-turn checks
                 # work out which sub-u-turn-checks we are doing
