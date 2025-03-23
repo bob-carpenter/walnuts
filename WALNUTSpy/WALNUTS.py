@@ -118,7 +118,7 @@ def WALNUTS(lpFun,
             H0=0.2, #initial big step size / fixed big step size if adaptH=False
             stepSizeRandScale=0.2, # step size randomization scale
             delta0=0.05, # initial integrator tolerance
-            multinomial=False, # if not, then biased progressive
+            #multinomial=False, # if not, then biased progressive
             numIter=2000,
             warmupIter=1000,
             M=10, # number of NUTS iterations
@@ -404,13 +404,13 @@ def WALNUTS(lpFun,
                         break
                 
                 # done building orbit, now check stop condition:
-                if(stopCondition(qm,vm,qp,vp)):
-                    expandFurther = False
-                    qProp = qc
-                    L_ = 0
-                    Ndoubl = 0
-                    stopCode = 1
-                    break
+                #if(stopCondition(qm,vm,qp,vp)):
+                #    expandFurther = False
+                #    qProp = qc
+                #    L_ = 0
+                #    Ndoubl = 0
+                #    stopCode = 1
+                #    break
                 
             else: # more than a single integration step, these require sub-u-turn checks
                 # work out which sub-u-turn-checks we are doing
@@ -420,8 +420,8 @@ def WALNUTS(lpFun,
                 else:
                     plan = a - plans[i]
 
-                if(not multinomial):
-                    multinomialW = 0.0
+                #if(not multinomial):
+                multinomialW = 0.0
 
                 for j in range(len(plan)): # loop over U-turn-checks
                     #print(plan[j,:])
@@ -667,7 +667,7 @@ def WALNUTS(lpFun,
                     print("numerical problems")
                     break
 
-                if(not multinomial and expandFurther):
+                if(expandFurther):
                     # note: reject (and not accept) of proposed state from last doubling
                     if(not random.uniform() < min(1.0,multinomialW/biasedProgWold)):
                         Lsub_ = L_
@@ -692,6 +692,7 @@ def WALNUTS(lpFun,
                     #qProp = qPropLast
                     #Ndoubl = i
                     Ndoubl = i+1
+                    orbitLenSam_ = orbitLen_
                     break
             else:
                 if(debug):
