@@ -106,9 +106,6 @@ def stopCondition(qm,vm,qp,vp):
 #-----------------------------------------
 # WALNUTS sampler
 # 
-#  revCheck:    True: stepsize adaptivity handled by deterministic reversibility checks
-#               False: stepsize adaptivity handled by multinomial weigths correction
-#
 #-----------------------------------------
 
 def WALNUTS(lpFun,
@@ -128,26 +125,9 @@ def WALNUTS(lpFun,
             adaptDelta=True,
             adaptDeltaTarget=0.6,
             adaptDeltaQuantile=0.9,
-            revCheck=False,  
-            debug=False, #
             recordOrbitStats=False
-            #oldGIST=False # retained for reference, NOT to be used 
             ): 
     
-    #-----------------------------------
-    # check that provided sampling plan makes sense
-    #-----------------------------------
-    if(revCheck):
-        #requires one of the deterministic integrators
-        if(integrator != ai.fixedLeapFrog and integrator != ai.adaptLeapFrogD):
-            sys.exit("reversibility-check-based adaptivity requires a deterministic integrator")
-    
-    # if(oldGIST):
-    #     print("WARNING: old GIST-based adaptivity not optimized, and should generally not be used")
-    #     #requires one of the deterministic integrators
-    #     if(integrator != fixedLeapFrog and integrator != adaptLeapFrogD):
-    #         sys.exit("old GIST-based adaptivity requires a deterministic integrator")
-
     #-----------------------------------
     # setup
     #-----------------------------------
@@ -197,7 +177,7 @@ def WALNUTS(lpFun,
     qc = q0 # current state
 
     # diagnositics info
-    diagnostics = np.zeros((numIter,20))
+    diagnostics = np.zeros((numIter,21))
     
     if(recordOrbitStats):
         orbitMin = np.zeros((dg,numIter))
@@ -215,11 +195,11 @@ def WALNUTS(lpFun,
         #-------------------------------------
         nevalF = 0
         nevalB = 0
-        Lsub_ = 0
+        Lold_ = 0
         L_ = 0
         orbitLen_ = 0.0
         orbitLenSam_ = 0.0
-        Ndoubl = M
+        
         
         warmup = iterN<=warmupIter
         
@@ -272,8 +252,8 @@ def WALNUTS(lpFun,
 
         # index selection-related quantities
         multinomialLscale = Hs[I0]
-        multinomialW = 1.0
-        biasedProgWold = 0.0
+        WoldSum = 1.0
+        
 
         lwtSumb = 0.0
         lwtSumf = 0.0
@@ -285,11 +265,6 @@ def WALNUTS(lpFun,
         bothEndsPassive = False
         stopCode = 0
         
-        
-        if(debug):
-            qTrace = np.zeros((d,1))
-            qTrace[:,0] = qc
-            stateNum = np.array([0])
             
         if(recordOrbitStats):
             orbitMin[:,iterN-1] = generated(qc)
@@ -309,6 +284,7 @@ def WALNUTS(lpFun,
             # more bookkeeping
             expandFurther = True
             qPropLast = qProp
+            Lold_ = L_
 
             if(i==0): # single first integration step required
                 HLoc = random.uniform(low=H*(1-stepSizeRandScale),
@@ -333,19 +309,14 @@ def WALNUTS(lpFun,
                         stopCode = 999
                         break
                     
-                    if(not revCheck): lwtSumf = lwts[I0+1]
-                    incr = np.exp(-Hs[I0+1]+multinomialLscale+lwtSumf)
-                    multinomialW += incr
-
-                    if(random.uniform()<min(1.0,incr)):
+                    lwtSumf = lwts[I0+1]
+                    Wnew = np.exp(-Hs[I0+1]+multinomialLscale+lwtSumf)
+                    
+                    # combined categorical and old/new selection
+                    if(random.uniform()<min(1.0,Wnew)):
                         qProp = qp
-                        Lsub_ = 1
+                        L_ = 1
 
-                    if(debug):
-                        tmp = np.zeros((d,1))
-                        tmp[:,0] = qp
-                        qTrace = np.hstack((qTrace,tmp))
-                        stateNum = np.hstack((stateNum,1))
                     
                     if(recordOrbitStats):
                         orbitMin[:,iterN-1] = np.minimum(orbitMin[:,iterN-1],generated(qp))
@@ -369,46 +340,27 @@ def WALNUTS(lpFun,
                         forcedReject = True
                         stopCode = 999
                         break
-                    if(not revCheck): lwtSumb = lwts[I0-1]
-                    incr = np.exp(-Hs[I0-1]+multinomialLscale + lwtSumb)
-                    multinomialW += incr
+                    lwtSumb = lwts[I0-1]
+                    Wnew = np.exp(-Hs[I0-1]+multinomialLscale + lwtSumb)
+                    
 
-                    if(random.uniform()<min(1.0,incr)):
+                    if(random.uniform()<min(1.0,Wnew)):
                         qProp = qm
-                        Lsub_ = -1
+                        L_ = -1
 
-                    if(debug):
-                        tmp = np.zeros((d,1))
-                        tmp[:,0] = qm
-                        qTrace = np.hstack((tmp,qTrace))
-                        stateNum = np.hstack((-1,stateNum))
                     
                     if(recordOrbitStats):
                         orbitMin[:,iterN-1] = np.minimum(orbitMin[:,iterN-1],generated(qm))
                         orbitMax[:,iterN-1] = np.maximum(orbitMax[:,iterN-1],generated(qm))
 
                 
-                biasedProgWold = 1.0+incr
-                
-                
-                if(revCheck):
-                    # check if adaptive integration step is reversible
-                    # if multinomial biasing is not used
-                    if(np.abs(Ifs[I0+xi]-Ibs[I0+xi])>0):
-                        
-                        expandFurther = False
-                        qProp = qc
-                        L_ = 0
-                        Ndoubl = 0
-                        stopCode = -1
-                        break
+                WoldSum += Wnew
                 
                 # done building orbit, now check stop condition:
                 if(stopCondition(qm,vm,qp,vp)):
                     expandFurther = False
-                #    qProp = qc
-                #    L_ = 0
-                    Ndoubl = 1
+                    NdoublComputed_ = 1
+                    NdoublSampled_ = 1
                     stopCode = 1
                     break
                 
@@ -420,8 +372,8 @@ def WALNUTS(lpFun,
                 else:
                     plan = a - plans[i]
 
-                #if(not multinomial):
-                multinomialW = 0.0
+                
+                WnewSum = 0.0
 
                 for j in range(len(plan)): # loop over U-turn-checks
                     #print(plan[j,:])
@@ -449,29 +401,19 @@ def WALNUTS(lpFun,
                                 stopCode = 999
                                 break
 
-                            if(revCheck and np.abs(Ifs[I0+i1]-Ibs[I0+i1])>0):
-                                
-                                expandFurther = False
-                                stopCode = -2
-                                break
-
-                            # multinomial/progressive sampling
-                            if(not revCheck): lwtSumb += lwts[I0+i1]
                             
-                            incr = np.exp(-Hs[I0+i1]+multinomialLscale + lwtSumb)
-                            multinomialW += incr
-                            if(multinomialW > __wtSumThresh and random.uniform()<incr/multinomialW):
+                            lwtSumb += lwts[I0+i1]
+                            
+                            Wnew = np.exp(-Hs[I0+i1]+multinomialLscale + lwtSumb)
+                            WnewSum += Wnew
+                            
+                            # online categorical sampling
+                            if(WnewSum > __wtSumThresh and random.uniform()<Wnew/WnewSum):
                                 qProp = qm
-                                Lsub_ = i1
-                            # store state for future u-turn-checking
+                                L_ = i1
+                            
                             states.statePush(i1,np.concatenate([qm,vm,gm]))
                             orbitLen_ += HLoc1[0]
-
-                            if(debug):
-                                tmp = np.zeros((d,1))
-                                tmp[:,0] = qm
-                                qTrace = np.hstack((tmp,qTrace))
-                                stateNum = np.hstack((i1,stateNum))
                             
                             if(recordOrbitStats):
                                 orbitMin[:,iterN-1] = np.minimum(orbitMin[:,iterN-1],generated(qm))
@@ -495,33 +437,22 @@ def WALNUTS(lpFun,
                             lwts[I0+i2] = intOut.lwt
                             if(warmup and adaptH): igrConstQ.push(np.log(intOut.igrConst))
                             maxBint = i2
+                            
                             if(not np.isfinite(Hs[I0+i2])):
                                 forcedReject = True
                                 break
                             
-                            if(revCheck and np.abs(Ifs[I0+i1]-Ibs[I0+i1])>0):
-                                expandFurther = False
-                                stopCode = -2
-                                break
-                            
-                            # multinomial/progressive sampling
-                            if(not revCheck): lwtSumb += lwts[I0+i2]
-                            
-                            incr = np.exp(-Hs[I0+i2]+multinomialLscale + lwtSumb)
-                            multinomialW += incr
-                            if(multinomialW > __wtSumThresh and random.uniform()<incr/multinomialW):
+                            # online categorical sampling
+                            Wnew = np.exp(-Hs[I0+i2]+multinomialLscale + lwtSumb)
+                            WnewSum += Wnew
+                            if(WnewSum > __wtSumThresh and random.uniform()<Wnew/WnewSum):
                                 qProp = qm
-                                Lsub_ = i2
+                                L_ = i2
 
                             # store state for future u-turn-checking
                             states.statePush(i2,np.concatenate([qm,vm,gm]))
                             orbitLen_ += HLoc1[1]
 
-                            if(debug):
-                                tmp = np.zeros((d,1))
-                                tmp[:,0] = qm
-                                qTrace = np.hstack((tmp,qTrace))
-                                stateNum = np.hstack((i2,stateNum))
                             
                             if(recordOrbitStats):
                                 orbitMin[:,iterN-1] = np.minimum(orbitMin[:,iterN-1],generated(qm))
@@ -529,10 +460,7 @@ def WALNUTS(lpFun,
 
                             # uturn check
                             if(stopCondition(qm,vm,qtmp,vtmp)):
-                                if(debug):
-                                    print("stop: ",i1," ",i2)
                                 expandFurther = False
-                                stopCode = 3
                                 break
 
                             
@@ -557,28 +485,18 @@ def WALNUTS(lpFun,
                                 stopCode = 999
                                 break
 
-                            if(revCheck and np.abs(Ifs[I0+i1]-Ibs[I0+i1])>0):
-                                
-                                expandFurther = False
-                                stopCode = -2
-                                break
-
-                            # multinomial/progressive sampling
-                            if(not revCheck): lwtSumf += lwts[I0+i1]
-                            incr = np.exp(-Hs[I0+i1]+multinomialLscale + lwtSumf)
-                            multinomialW += incr
-                            if(multinomialW > __wtSumThresh and random.uniform()<incr/multinomialW):
+                            
+                            lwtSumf += lwts[I0+i1]
+                            
+                            # online categorical sampling
+                            Wnew = np.exp(-Hs[I0+i1]+multinomialLscale + lwtSumf)
+                            WnewSum += Wnew
+                            if(WnewSum > __wtSumThresh and random.uniform()<Wnew/WnewSum):
                                 qProp = qp
-                                Lsub_ = i1
+                                L_ = i1
                             # store state for future u-turn-checking
                             states.statePush(i1,np.concatenate([qp,vp,gp]))
                             orbitLen_ += HLoc1[0]
-
-                            if(debug):
-                                tmp = np.zeros((d,1))
-                                tmp[:,0] = qp
-                                qTrace = np.hstack((qTrace,tmp))
-                                stateNum = np.hstack((stateNum,i1))
                                 
                             if(recordOrbitStats):
                                 orbitMin[:,iterN-1] = np.minimum(orbitMin[:,iterN-1],generated(qp))
@@ -606,40 +524,27 @@ def WALNUTS(lpFun,
                                 forcedReject = True
                                 break
                             
-                            if(revCheck and np.abs(Ifs[I0+i2]-Ibs[I0+i2])>0):
-                                
-                                expandFurther = False
-                                stopCode = -2
-                                break
                             
                             # multinomial/progressive sampling
-                            if(not revCheck): lwtSumf += lwts[I0+i2]
+                            lwtSumf += lwts[I0+i2]
                             
-                            incr = np.exp(-Hs[I0+i2]+multinomialLscale + lwtSumf)
-                            multinomialW += incr
-                            if(multinomialW > __wtSumThresh and random.uniform()<incr/multinomialW):
+                            Wnew = np.exp(-Hs[I0+i2]+multinomialLscale + lwtSumf)
+                            WnewSum += Wnew
+                            if(WnewSum > __wtSumThresh and random.uniform()<Wnew/WnewSum):
                                 qProp = qp
-                                Lsub_ = i2
+                                L_ = i2
 
                             # store state for future u-turn-checking
                             states.statePush(i2,np.concatenate([qp,vp,gp]))
                             orbitLen_ += HLoc1[1]
 
-                            if(debug):
-                                tmp = np.zeros((d,1))
-                                tmp[:,0] = qp
-                                qTrace = np.hstack((qTrace,tmp))
-                                stateNum = np.hstack((stateNum,i2))
                             
                             if(recordOrbitStats):
                                 orbitMin[:,iterN-1] = np.minimum(orbitMin[:,iterN-1],generated(qp))
                                 orbitMax[:,iterN-1] = np.maximum(orbitMax[:,iterN-1],generated(qp))
 
                             if(stopCondition(qtmp,vtmp,qp,vp)):
-                                if(debug):
-                                    print("stop: ",i1," ",i2)
                                 expandFurther = False
-                                stopCode = 2
                                 break
                         # done forward integration 
                     else: # no new integration steps needed, only U-turn checks
@@ -656,10 +561,7 @@ def WALNUTS(lpFun,
                                          statem[d:(2*d)],
                                          statep[0:d],
                                          statep[d:(2*d)])):
-                            if(debug):
-                                print("stop B ",im," ",ip)
                             expandFurther = False
-                            stopCode = 3
                             break
                 # done loop over j (16)
 
@@ -668,40 +570,43 @@ def WALNUTS(lpFun,
                     break
 
                 if(expandFurther):
+                    # the proposed sub-orbit was found to be free of u-turns
+                    # now check if proposed state should be from old or new sub-orbit
                     # note: reject (and not accept) of proposed state from last doubling
-                    if(not random.uniform() < min(1.0,multinomialW/biasedProgWold)):
-                        Lsub_ = L_
+                    if(not random.uniform() < min(1.0,WnewSum/WoldSum)):
+                        L_ = Lold_
                         qProp = qPropLast
-                    biasedProgWold += multinomialW
+                        
+                    WoldSum += WnewSum
             
-            # done i>0 (12)                         
-            
-            if(expandFurther):          
-                joinedCrit = stopCondition(qm,vm,qp,vp)
-                # stop simulation if multinomial weights at either end are effectivly zero
-                bothEndsPassive = lwtSumb < __logZero+1.0 and lwtSumf < __logZero+1.0
-                if(joinedCrit or bothEndsPassive):
-                    if(debug):
-                        print("stop global")
-                    if(joinedCrit):
-                        stopCode = 4
-                    else:
-                        stopCode = -4
+                    # proposed suborbit free of U-turns
+                    # final U-turn check
+                    joinedCrit = stopCondition(qm,vm,qp,vp)
+                    # stop simulation if multinomial weights at either end are effectivly zero
+                    bothEndsPassive = lwtSumb < __logZero+1.0 and lwtSumf < __logZero+1.0
+                    if(joinedCrit or bothEndsPassive):
+                        if(joinedCrit):
+                            stopCode = 4
+                        else:
+                            stopCode = -4
                     
-                
-                    #qProp = qPropLast
-                    #Ndoubl = i
-                    Ndoubl = i+1
-                    orbitLenSam_ = orbitLen_
+                        NdoublSampled_ = i+1
+                        NdoublComputed_ = i+1
+                        orbitLenSam_ = orbitLen_
+                        break
+                else:
+                    # proposed subOrbit had a sub-U-turn
+                    qProp = qPropLast
+                    L_ = Lold_
+                    NdoublSampled_ = i
+                    NdoublComputed_ = i+1
+                    stopCode = 5
                     break
-            else:
-                if(debug):
-                    print("stop local")
-                qProp = qPropLast
-                Ndoubl = i
-                break
+            
+            
+            # done i>0 (12): proposed new suborbit done   
             # from now on, it is clear that a new doubling will be attempted        
-            L_ = Lsub_
+            
             orbitLenSam_ = orbitLen_
                           
             a = min(a,at)
@@ -711,33 +616,8 @@ def WALNUTS(lpFun,
             
         # done NUTS loop
         
-        if(debug):
-            print(qTrace)
-            plt.plot(qTrace[0,:],qTrace[1,:])
-            plt.show()
-
-
-        # if(oldGIST):
-        #     # note: oldGIST version not optimized, only retained as reference
-        #     # this method adds a GIST-style accept-reject step to account for
-        #     # integrator adaptivity. Only implemented for the deterministic adaptive sampler,
-        #     # hence check for that first:
-        #     #print(Ifs[(I0+maxBint):(I0+maxFint)])
-        #     #print(cs[(I0+maxBint):(I0+maxFint)])
-        #     if(np.any(Ifs[(I0+maxBint):(I0+maxFint)] != cs[(I0+maxBint):(I0+maxFint)])):
-        #         sys.exit("using oldGIST with randomized integrator, not implemented")
-        #     if(not np.any(Ifs[(I0+maxBint):(I0+maxFint)] != Ibs[(I0+maxBint):(I0+maxFint)])):
-        #        qc = qProp
-        #     else:
-        #        print("GIST reject")
-        # else:
-        #     # no GIST accept/reject here - multinomially sampled new state
-        #     # accepted with prob 1
-        #     qc = qProp 
         qc = qProp    
 
-        #print(Ifs[(I0+maxBint):(I0+maxFint)])
-        #print(Ibs[(I0+maxBint):(I0+maxFint)])
 
         #-------------------------------------
         # store samples and diagnostics info
@@ -754,7 +634,7 @@ def WALNUTS(lpFun,
         orbitEnergyError = np.max(Hs[I0+usedSteps]) - np.min(Hs[I0+usedSteps])
 
         diagnostics[iterN-1,0] = L_
-        diagnostics[iterN-1,1] = Ndoubl
+        diagnostics[iterN-1,1] = NdoublSampled_
         diagnostics[iterN-1,2] = orbitLen_
         diagnostics[iterN-1,3] = orbitLenSam_
         diagnostics[iterN-1,4] = maxFint
@@ -773,7 +653,7 @@ def WALNUTS(lpFun,
         diagnostics[iterN-1,17] = orbitEnergyError
         diagnostics[iterN-1,18] = delta
         diagnostics[iterN-1,19] = 1.0*stopCode
-        
+        diagnostics[iterN-1,20] = NdoublComputed_
         
         samples[:,iterN] = generated(qc)
         
