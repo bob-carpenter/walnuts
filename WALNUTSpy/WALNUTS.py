@@ -287,6 +287,7 @@ def WALNUTS(lpFun,
             Lold_ = L_
 
             if(i==0): # single first integration step required
+                
                 HLoc = random.uniform(low=H*(1-stepSizeRandScale),
                                       high=H*(1+stepSizeRandScale),size=1)[0]
                 orbitLen_ += HLoc
@@ -313,9 +314,9 @@ def WALNUTS(lpFun,
                     Wnew = np.exp(-Hs[I0+1]+multinomialLscale+lwtSumf)
                     
                     # combined categorical and old/new selection
-                    if(random.uniform()<min(1.0,Wnew)):
-                        qProp = qp
-                        L_ = 1
+                    #if(random.uniform()<min(1.0,Wnew)):
+                    qProp = qp
+                    L_ = 1
 
                     
                     if(recordOrbitStats):
@@ -344,25 +345,27 @@ def WALNUTS(lpFun,
                     Wnew = np.exp(-Hs[I0-1]+multinomialLscale + lwtSumb)
                     
 
-                    if(random.uniform()<min(1.0,Wnew)):
-                        qProp = qm
-                        L_ = -1
+                    #if(random.uniform()<min(1.0,Wnew)):
+                    qProp = qm
+                    L_ = -1
 
                     
                     if(recordOrbitStats):
                         orbitMin[:,iterN-1] = np.minimum(orbitMin[:,iterN-1],generated(qm))
                         orbitMax[:,iterN-1] = np.maximum(orbitMax[:,iterN-1],generated(qm))
 
+                WoldSum = 1.0
+                WnewSum = Wnew
                 
-                WoldSum += Wnew
+                
                 
                 # done building orbit, now check stop condition:
-                if(stopCondition(qm,vm,qp,vp)):
-                    expandFurther = False
-                    NdoublComputed_ = 1
-                    NdoublSampled_ = 1
-                    stopCode = 1
-                    break
+                #if(stopCondition(qm,vm,qp,vp)):
+                #    expandFurther = False
+                #    NdoublComputed_ = 1
+                #    NdoublSampled_ = 1
+                #    stopCode = 1
+                #    break
                 
             else: # more than a single integration step, these require sub-u-turn checks
                 # work out which sub-u-turn-checks we are doing
@@ -565,50 +568,58 @@ def WALNUTS(lpFun,
                             break
                 # done loop over j (16)
 
-                if(forcedReject):
-                    print("numerical problems")
-                    break
+            if(forcedReject):
+                print("numerical problems")
+                break
+            
+            
+            if(not expandFurther):
+                # proposed subOrbit had a sub-U-turn
+                qProp = qPropLast
+                L_ = Lold_
+                NdoublSampled_ = i
+                NdoublComputed_ = i+1
+                stopCode = 5
+                break
 
-                if(expandFurther):
-                    # the proposed sub-orbit was found to be free of u-turns
-                    # now check if proposed state should be from old or new sub-orbit
-                    # note: reject (and not accept) of proposed state from last doubling
-                    if(not random.uniform() < min(1.0,WnewSum/WoldSum)):
-                        L_ = Lold_
-                        qProp = qPropLast
-                        
-                    WoldSum += WnewSum
-            
-                    # proposed suborbit free of U-turns
-                    # final U-turn check
-                    joinedCrit = stopCondition(qm,vm,qp,vp)
-                    # stop simulation if multinomial weights at either end are effectivly zero
-                    bothEndsPassive = lwtSumb < __logZero+1.0 and lwtSumf < __logZero+1.0
-                    if(joinedCrit or bothEndsPassive):
-                        if(joinedCrit):
-                            stopCode = 4
-                        else:
-                            stopCode = -4
-                    
-                        NdoublSampled_ = i+1
-                        NdoublComputed_ = i+1
-                        orbitLenSam_ = orbitLen_
-                        break
-                else:
-                    # proposed subOrbit had a sub-U-turn
-                    qProp = qPropLast
+            else:
+                
+                # the proposed sub-orbit was found to be free of u-turns
+                # now check if proposed state should be from old or new sub-orbit
+                # note: reject (and not accept) of proposed state from last doubling
+                
+                if(not (random.uniform() < WnewSum/WoldSum)):
                     L_ = Lold_
-                    NdoublSampled_ = i
+                    qProp = qPropLast
+                        
+                
+            
+                # proposed suborbit free of U-turns
+                # final U-turn check
+                joinedCrit = stopCondition(qm,vm,qp,vp)
+                # stop simulation if multinomial weights at either end are effectivly zero
+                bothEndsPassive = lwtSumb < __logZero+1.0 and lwtSumf < __logZero+1.0
+                if(joinedCrit or bothEndsPassive):
+                    if(joinedCrit):
+                        stopCode = 4
+                    else:
+                        stopCode = -4
+                    
+                    NdoublSampled_ = i+1
                     NdoublComputed_ = i+1
-                    stopCode = 5
+                    orbitLenSam_ = orbitLen_
                     break
             
+                
             
-            # done i>0 (12): proposed new suborbit done   
+            
+            
             # from now on, it is clear that a new doubling will be attempted        
+            WoldSum += WnewSum
             
             orbitLenSam_ = orbitLen_
-                          
+            NdoublSampled_ = i+1
+            NdoublComputed_ = i+1
             a = min(a,at)
             b = max(b,bt)
             states.stateReset()

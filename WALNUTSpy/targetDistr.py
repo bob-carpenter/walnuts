@@ -57,3 +57,18 @@ def funnel10(q):
                ,-q[1:11]*np.exp(-q[0])]
     return [lp,grad]
 
+
+def funnel10rescaled(q):
+    S = np.ones(11)
+    S[0] = 3.0
+    qb = S*q
+    lp,g = funnel10(qb)
+    return [lp,S*g]
+
+def funnel1(q):
+    lp = sps.norm.logpdf(q[0],loc=0.0,scale=3.0) + sps.norm.logpdf(q[1],loc=0.0,scale=np.exp(0.5*q[0]))
+    grad = np.array([-0.5-q[0]/9 + 0.5*q[1]**2*np.exp(-q[0]),
+                     -q[1]*np.exp(-q[0])])
+    return [lp,grad]
+
+
