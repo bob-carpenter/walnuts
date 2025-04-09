@@ -34,7 +34,8 @@ class integratorReturn:
 
 # class used for passing assorted tuning parameters to the integrators
 class integratorAuxPar:
-    def __init__(self,maxC=10,R2Pprob0=2.0/3.0,maxFPiter=30,FPtol=1.0e-8,FPNewton=False,rescaledGradThresh=10.0):
+    def __init__(self,minC=0,maxC=10,R2Pprob0=2.0/3.0,maxFPiter=30,FPtol=1.0e-8,FPNewton=False,rescaledGradThresh=5.0):
+        self.minC=minC
         self.maxC=maxC
         self.R2Pprob0=R2Pprob0
         self.maxFPiter=maxFPiter
@@ -55,7 +56,7 @@ def fixedLeapFrog(q,v,g,Ham0,h,xi,lpFun,delta,auxPar):
 
     return integratorReturn(qq,xi*vv,fnew,gnew,1,0,0,0,0,
                             0.0,
-                            h*(abs(Ham0-H1)**(-1.0/3.0)))
+                            h*(max(1.0e-10,abs(Ham0-H1))**(-1.0/3.0)))
 
 
 
@@ -65,7 +66,7 @@ def adaptLeapFrogD(q,v,g,Ham0,h,xi,lpFun,delta,auxPar):
     
     nEvalF = 0
     If = auxPar.maxC
-    for c in range(0,auxPar.maxC+1):
+    for c in range(auxPar.minC,auxPar.maxC+1):
         nstep = 2**c
         hh = h/nstep
         qq = q
@@ -103,11 +104,11 @@ def adaptLeapFrogD(q,v,g,Ham0,h,xi,lpFun,delta,auxPar):
     Ib = If
     nEvalB = 0
 
-    if(If>0):
+    if(If>auxPar.minC):
     
         
         H0b = Hams[-1]
-        for c in range(0,If):
+        for c in range(auxPar.minC,If):
             nstep = 2**c
             hh = h/nstep
             qq = qOut
