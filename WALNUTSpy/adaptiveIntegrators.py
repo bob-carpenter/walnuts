@@ -256,7 +256,7 @@ def adaptLeapFrogR2P(q,v,g,Ham0,h,xi,lpFun,delta,auxPar):
     
     nEvalF = 0
     If = auxPar.maxC
-    for c in range(0,auxPar.maxC+1):
+    for c in range(auxPar.minC,auxPar.maxC+1):
         nstep = 2**c
         hh = h/nstep
         qq = q
@@ -331,11 +331,11 @@ def adaptLeapFrogR2P(q,v,g,Ham0,h,xi,lpFun,delta,auxPar):
         lwtf = np.log(1.0-auxPar.R2Pprob0)
         
         
-    if(maxTry>=0):
+    if(maxTry>=auxPar.minC):
     
         
         H0b = Hams[-1]
-        for c in range(0,maxTry+1):
+        for c in range(auxPar.minC,maxTry+1):
             nstep = 2**c
             hh = h/nstep
             qq = qOut
