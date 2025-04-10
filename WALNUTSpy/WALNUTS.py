@@ -177,7 +177,7 @@ def WALNUTS(lpFun,
     qc = q0 # current state
 
     # diagnositics info
-    diagnostics = np.zeros((numIter,21))
+    diagnostics = np.zeros((numIter,23))
     
     if(recordOrbitStats):
         orbitMin = np.zeros((dg,numIter))
@@ -665,6 +665,8 @@ def WALNUTS(lpFun,
         diagnostics[iterN-1,18] = delta
         diagnostics[iterN-1,19] = 1.0*stopCode
         diagnostics[iterN-1,20] = NdoublComputed_
+        diagnostics[iterN-1,21] = np.min(cs[I0+usedSteps])
+        diagnostics[iterN-1,22] = np.max(cs[I0+usedSteps])
         
         samples[:,iterN] = generated(qc)
         
