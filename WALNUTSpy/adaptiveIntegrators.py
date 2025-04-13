@@ -131,7 +131,7 @@ def adaptLeapFrogD(q,v,g,Ham0,h,xi,lpFun,delta,auxPar):
                 Ib = c
                 break    
     
-    
+    #print(If,"  ",Ib)
     return integratorReturn(qOut,xi*vOut,fOut,gOut,nEvalF,nEvalB,If,Ib,If,
                             (If!=Ib)*__logZero,
                             igrConst)
