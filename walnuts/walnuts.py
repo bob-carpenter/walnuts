@@ -15,7 +15,7 @@ def uturn(theta_rho1, theta_rho2, inv_mass):
     """
     theta1, rho1 = theta_rho1
     theta2, rho2 = theta_rho2
-    diff = inv_mass * (theta_1 - theta_2)
+    diff = inv_mass * (theta1 - theta2)
     return np.dot(rho1, diff) < 0 or np.dot(rho2, diff) < 0
 
 
@@ -24,23 +24,24 @@ def sub_uturn(orbit, start, end, inv_mass):
 
     An orbit has a sub-U-turn if (a) the orbit has a U-turn, (b) the
     first half of the orbit has a sub-U-turn, or (c) the second half of
-    the orbit has a sub-U-turn. 
+    the orbit has a sub-U-turn. The inverse mass matrix is used as a Euclidean
+    metric in the calculation (see the `uturn()` function for a definition).
 
     Args:
         orbit: A list of pairs representing position and momentum in phase space of size `2^K`for some `K >= 0`.
         start: The first position to consider in the orbit.
         end: The last position to consider in the orbit.
-        inv_mass: The diagonal of the inverse mass matrix, used as a metric in the U-turn condition.
+        inv_mass: The diagonal of the diagonal inverse mass matrix.
     Returns:
         `True` if there is a sub-U-turn between the ends of the orbit.
     """
     size = end - start
-    if size >= 2 and uturn_state(orbit[start], orbit[end - 1], inv_mass):
+    if size >= 2 and uturn(orbit[start], orbit[end - 1], inv_mass):
         return True
     if size >= 4:
         mid = start + size // 2
-        return (sub_uturn_idx(orbit, start, mid, inv_mass) or
-                     or sub_uturn_idx(orbit, mid, end, inv_mass))
+        return (sub_uturn(orbit, start, mid, inv_mass) or
+                     or sub_uturn(orbit, mid, end, inv_mass))
     return False
 
 
@@ -52,28 +53,28 @@ def leapfrog_step(grad, theta, rho, step_size, inv_mass):
         theta: The initial position.
         rho: The initial momentum.
         step_size: The interval of time discretization of the dynamics simulator.
-        inv_mass: The diagonal of the inverse mass matrix
+        inv_mass: The diagonal of the diagonal inverse mass matrix
     Returns:
         A pair `(theta_f, rho_f)` consisting of the final position and final momentum.
     """
     half_step_size = 0.5 * step_size
     rho_half = rho + half_step_size * grad(theta)
     theta_full = theta + step_size * inv_mass * rho_half
-    rho_full = rho_half + half_step_size * grad(theta)
+    rho_full = rho_half + half_step_size * grad(theta_full)
     return theta_full, rho_full
 
-def potential_energy(theta, log_p):
+def potential_energy(theta, logp):
     """Return the potential energy for the specified position.
 
-    The potential energy is defined to be the negative log density, `-log_p(theta)`.
+    The potential energy is defined to be the negative log density, `-logp(theta)`.
 
     Args:
         theta: The position.
-        log_p: The target log density.
+        logp: The target log density.
     Returns:
         The potnetial energy.
     """
-    return -log_p(theta)
+    return -logp(theta)
 
 
 def kinetic_energy(rho, inv_mass):
@@ -85,14 +86,14 @@ def kinetic_energy(rho, inv_mass):
 
     Args:
         rho: The momentum.
-        inv_mass: The diagonal of the inverse mass matrix.
+        inv_mass: The diagonal of the diagonal inverse mass matrix.
     Returns:
         The kinetic energy.
     """
     return 0.5 * np.dot(rho, inv_mass * rho)
  
 
-def H(theta, rho, log_p, inv_mass):
+def H(theta, rho, logp, inv_mass):
     """Return the Hamiltonian for the specified position and momentum.
 
     The Hamiltonian is the sum of the potential energy of the position
@@ -101,15 +102,15 @@ def H(theta, rho, log_p, inv_mass):
     Args: 
         theta: The position.
         rho: The momentum.
-        log_p: The target log density function.
+        logp: The target log density function.
         inv_mass: The diagonal of the inverse mass matrix.
     Returns:
         The Hamiltonian.
     """
-    return potential_energy(theta, log_p) + kinetic_energy(rho, inv_mass)
+    return potential_energy(theta, logp) + kinetic_energy(rho, inv_mass)
 
 
-def stable_steps(theta0, rho0, log_p, grad, inv_mass, macro_step, max_error):
+def stable_steps(theta0, rho0, logp, grad, inv_mass, macro_step, max_error):
     """Return the minimum steps into which `macro_step` must be broken to bound error by `max_error`.
 
     Only numbers of steps of the form `2**n` for `n <= 10` are considered. If 
@@ -118,7 +119,7 @@ def stable_steps(theta0, rho0, log_p, grad, inv_mass, macro_step, max_error):
     Args:
         theta0: The initial position.
         rho0: The initial momentum.
-        log_p: The target log density function.
+        logp: The target log density function.
         grad: The gradient function for the target log density.
         inv_mass: The inverse mass matrix.
         macro_step: The largest step size considered.
@@ -131,51 +132,84 @@ def stable_steps(theta0, rho0, log_p, grad, inv_mass, macro_step, max_error):
         theta, rho = theta0, rho0
         ell = 2**n
         step_size = macro_step / ell
-        H_min = H_max = H(theta, rho, log_p, inv_mass)
+        H_min = H_max = H(theta, rho, logp, inv_mass)
         for j in range(ell):
             theta, rho = leapfrog_step(grad, theta, rho, step_size, inv_mass)
-            H_current = H(theta, rho, log_p, inv_mass)
-            H_min, H_max = min([H_min, H_current]), max([H_max, H_current])
+            H_current = H(theta, rho, logp, inv_mass)
+            H_min, H_max = min(H_min, H_current), max(H_max, H_current)
         if H_max - H_min <= max_error:
             return True, ell
     return False, ell
 
 def choose_micro_steps(rng, ell_stable):
-    return rng.choose([ell_stable // 2, ell_stable, ell_stable * 2])
+    """Generate a random step size around `ell_stable`
+    
+    The distribution is uniform among `ell_stable // 2`, `ell_stable`, and `ell_stable * 2`. 
+
+    Args:
+        rng (np.Generator): A random number generator
+        ell_stable (float > 0): The maximum step size preserving Hamiltonian below threshold.
+    """
+    return rng.choice([ell_stable // 2, ell_stable, ell_stable * 2])
 
 def micro_steps_logp(ell, ell_stable):
+    """Return the log probability of the given step size given the stable step size.
+
+    The distribution is uniform among `ell_stable // 2`, `ell_stable`, and `ell_stable * 2`. 
+
+    Args:
+        ell (float > 0): The chosen step size.
+        ell_stable (float > 0): The maximum step size preserving Hamiltonian below threshold.
+    """
     if ell == ell_stable or ell == ell_stable // 2 or ell == ell_stable * 2:
         return -np.log(3)
-    return -np.log(0)
+    return np.NINF
 
-def extend_orbit_forward(rng, theta, rho, weight, logp, grad, inv_mass,
+def extend_orbit_forward(rng, going_backward, theta, rho, weight, logp, grad, inv_mass,
                              macro_step, num_macro_steps, max_error):
+    """Extend the orbit a fixed number of macro steps in the given direction from the current state.
+    
+    The orbit is extended by continually doubling and weights are calculated as described in
+    the paper (see 
+    
+    Args: 
+        rng (np.Generator): A random number generator
+        going_backward (bool): `True` if evolving chain backward in time
+        theta (np.ndarray (D,)): The previous position.
+        rho (np.ndarray (D,)): The previous momentum.
+        weight (float): The previous log weight.
+        logp (function: np.ndarray(D,) -> float): The target log density function.
+        grad (function: np.ndarray(D,) -> np.ndarray(D,)): The target gradient function.
+        inv_mass (np.ndarray(D,)): The diagonal of the diagonal inverse mass matrix.
+        macro_step (float > 0): The macro step size for NUTS.
+        num_macro_steps (int > 0): The number of macro steps to take.
+        max_error (float > 0): The maximum allowable energy error between states.
+    Return: 
+        A pair `(orbit, weights)` of the new orbit and its weights.
+    """
+    if going_backward:
+        rho = -rho
     new_orbit = []
     new_weights = []
     for _ in range(num_macro_steps):
-        ell_stable = stable_steps(theta, rho, log_p, grad, inv_mass, macro_step, max_error)
+        ell_stable = stable_steps(theta, rho, logp, grad, inv_mass, macro_step, max_error)
         ell = choose_micro_steps(rng, ell_stable)
-        theta_next, rho_next = leapfrog(theta, rho, logp, grad, inv_mass, ell, macro_step_size / ell)
-        ell_return = stable_steps(theta_next, rho_next, log_p, grad, inv_mass, macro-step, max_error)
-        ell_stable_back = stable_steps(theta_next, -rho_next, logp_grad, inv_mass, macro_step, max_error)
+        theta_next, rho_next = leapfrog_step(theta, rho, logp, grad, inv_mass, ell, macro_step / ell)
+        ell_return = stable_steps(theta_next, rho_next, logp, grad, inv_mass, macro_step, max_error)
+        ell_stable_back = stable_steps(theta_next, -rho_next, logp, grad, inv_mass, macro_step, max_error)
         weight_next = (
             -H(theta_next, rho_next) - -H(theta, rho)
-            + micro_steps_log_p(ell | ell_stable_return) - micro_steps_log_p(ell | ell_stable_back)
+            + micro_steps_logp(ell, ell_stable_return) - micro_steps_logp(ell, ell_stable_back)
             + weight
         )
         new_orbit.append((theta_next, rho_next))
         new_weights.append(weight_next)
         theta, rho, weight = theta_next, rho_next, weight_next
-    return new_orbit, np.cumsum(new_weights)
+    if going_backward:
+        new_orbit, new_weights = np.reverse(new_orbit), np.reverse(new_weights)
+    return new_orbit, new_weights
     
-def extend_orbit_backward(rng, theta, rho, weight, logp, grad, inv_mass,
-                             macro_step, num_macro_steps, max_error):
-    rho_bk = -rho
-    orbit, weights = extend_orbit_forward(rng, theta, rho_bk, weight, logp, grad, inv_mass,
-                                macro_step, num_macro_steps, max_error, p_micro)
-    return reverse(orbit), reverse(weights)
-
-def walnuts(rng, theta, logp, grad, inv_mass, macro_step_size, max_nuts_depth, max_energy_error):
+def walnuts(rng, theta, logp, grad, inv_mass, macro_step, max_nuts_depth, max_error):
     """Return the next state from WALNUTS given the currrent state `theta`.
     
     Sequentially drawing from WALNUTS given the previous draw forms a Markov chain, the stationy
@@ -195,9 +229,9 @@ def walnuts(rng, theta, logp, grad, inv_mass, macro_step_size, max_nuts_depth, m
         logp (function (D,) -> float): A continuously differentiable target log density function
         grad (function (D,) -> (D,)): The gradient function of the target log density
         inv_mass (1D array_like (D,)): The diagonal of the inverse mass matrix
-        macro_step_size (float > 0): The macro step size for NUTS.
+        macro_step (float > 0): The macro step size for NUTS.
         max_nuts_depth (int > 0): The maximum number of doublings in NUTS evolution.
-        max_energy_error (float > 0): The maximum error in energy allowed between micro steps making up a macro step.
+        max_error (float > 0): The maximum error in energy allowed between micro steps making up a macro step.
     Raises:
         ValueError: The shapes of `theta` and `inv_mass` do not match, or arguments are out of range.
     Returns:
@@ -211,12 +245,12 @@ def walnuts(rng, theta, logp, grad, inv_mass, macro_step_size, max_nuts_depth, m
         raise ValueError("theta not a vector")
     if inv_mass.shape[0] != inv_mass.size:
         raise ValueError("inv_mass not a vector")
-    if not macro_step_size > 0:
-        raise ValueError("non-positive macro_step_size")
+    if not macro_step > 0:
+        raise ValueError("non-positive macro_step")
     if not max_nuts_depth > 0:
         raise ValueError("non-positive max_nuts_depth")
-    if not max_energy_error > 0:
-        raise ValueError("non-positive max_energy_error")
+    if not max_error > 0:
+        raise ValueError("non-positive max_error")
 
     L_mass = inv_mass**-0.5
     D = theta.shape
@@ -231,10 +265,10 @@ def walnuts(rng, theta, logp, grad, inv_mass, macro_step_size, max_nuts_depth, m
                                                       logp, grad, inv_mass, macro_step, num_macro_steps, max_error)
         if sub_uturn(orbit_ext, 0, num_macro_steps, inv_mass):
             break
-        accept_prob = np.exp(sum(log_weights_ext) - sum(log_weights))
+        accept_prob = max(1.0, np.exp(sum(log_weights_ext) - sum(log_weights)))
         accept = rng.binomial(1, accept_prob)
         if accept:
-            theta_selected, _ = rng.choice(orbit_ext, p=softmax(weights_ext))
+            theta_selected, _ = rng.choice(orbit_ext, p=softmax(log_weights_ext))
         orbit = np.concatenate([orbit_ext, orbit] if going_backward else [orbit, orbit_ext])
         if uturn(orbit[0], orbit[-1], inv_mass):
             break
