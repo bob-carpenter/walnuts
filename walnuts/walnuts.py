@@ -31,7 +31,7 @@ def sub_uturn(orbit, start, end, inv_mass):
     metric in the calculation (see the `uturn()` function for a definition).
 
     Args:
-        orbit: A list of pairs representing position and momentum in phase space of size `2^K`for some `K >= 0`.
+        orbit: A list of pairs representing position and momentum in phase space of size `2^K` for some `K >= 0`.
         start: The first position to consider in the orbit.
         end: The last position to consider in the orbit.
         inv_mass: The diagonal of the inverse mass matrix.
@@ -95,7 +95,7 @@ def kinetic_energy(rho, inv_mass):
     Returns:
         The kinetic energy.
     """
-    return 0.5 * np.dot(inv_mass, rho ** 2)
+    return 0.5 * np.dot(inv_mass, rho**2)
 
 
 def H(theta, rho, logp, inv_mass):
@@ -130,12 +130,11 @@ def stable_steps(theta0, rho0, logp, grad, inv_mass, macro_step, max_error):
         macro_step: The largest step size considered.
         max_error: The max difference allowed among the Hamiltonians.
     Returns:
-        A pair `(success, ell)` of minimum number of steps `ell` and a flag `success`
-        which is `True` if `ell` is stable.
+        A pair `(success, ell)` of a success flag and minimum steps preserving stability.
     """
     for n in range(11):
         theta, rho = theta0, rho0
-        ell = 2 ** n
+        ell = 2**n
         step_size = macro_step / ell
         H_min = H_max = H(theta, rho, logp, inv_mass)
         for j in range(ell):
@@ -154,7 +153,7 @@ def choose_micro_steps(rng, ell_stable):
 
     Args:
         rng (np.Generator): A random number generator
-        ell_stable (float > 0): The maximum step size preserving Hamiltonian below threshold.
+        ell_stable (int > 0): The minimum number of steps preserving Hamiltonian below threshold.
     """
     return rng.choice([ell_stable // 2, ell_stable, ell_stable * 2])
 
@@ -165,15 +164,15 @@ def micro_steps_logp(ell, ell_stable):
     The distribution is uniform among `ell_stable // 2`, `ell_stable`, and `ell_stable * 2`.
 
     Args:
-        ell (float > 0): The chosen step size.
-        ell_stable (float > 0): The maximum step size preserving Hamiltonian below threshold.
+        ell (int > 0): The chosen number of steps.
+        ell_stable (int > 0): The minimum number of steps preserving Hamiltonian below threshold.
     """
     if ell == ell_stable or ell == ell_stable // 2 or ell == ell_stable * 2:
         return -np.log(3)
     return np.NINF
 
 
-def extend_orbit_forward(
+def extend_orbit(
     rng,
     going_backward,
     theta,
@@ -221,9 +220,11 @@ def extend_orbit_forward(
         _, ell_stable_next = stable_steps(
             theta_next, -rho_next, logp, grad, inv_mass, macro_step, max_error
         )
+        p_theta_rho_next = -H(theta_next, rho_next)
+        p_theta_rho = -H(theta, rho)
         weight_next = (
-            -H(theta_next, rho_next)
-            - -H(theta, rho)
+            p_theta_rho_next
+            - p_theta_rho
             + micro_steps_logp(ell, ell_stable_next)
             - micro_steps_logp(ell, ell_stable)
             + weight
@@ -232,14 +233,14 @@ def extend_orbit_forward(
         new_weights.append(weight_next)
         theta, rho, weight = theta_next, rho_next, weight_next
     if going_backward:
-        new_orbit, new_weights = np.reverse(new_orbit), np.reverse(new_weights)
+        new_orbit, new_weights = np.flip(new_orbit), np.flip(new_weights)
     return new_orbit, new_weights
 
 
 def walnuts(rng, theta, logp, grad, inv_mass, macro_step, max_nuts_depth, max_error):
-    """Return the next state from WALNUTS given the currrent state `theta`.
+    """Return the next state from WALNUTS given the current state `theta`.
 
-    Sequentially drawing from WALNUTS given the previous draw forms a Markov chain, the stationy
+    Sequentially drawing from WALNUTS given the previous draw forms a Markov chain, the stationary
     distribution of which has an unnormalized log density function `logp`.
 
     WALNUTS uses NUTS to determine the number of macro steps.  The step size within
@@ -279,14 +280,14 @@ def walnuts(rng, theta, logp, grad, inv_mass, macro_step, max_nuts_depth, max_er
     if not max_error > 0:
         raise ValueError("non-positive max_error")
 
-    L_mass = inv_mass ** -0.5
+    L_mass = inv_mass**-0.5
     D = theta.size
 
     rho = L_mass * rng.normal(size=D)  # rho ~ mvnormal(0, inverse(inv_mass))
     orbit, log_weights = [(theta, rho)], [-H(theta, rho, logp, inv_mass)]
     theta_selected = theta
     for depth in range(max_nuts_depth):
-        num_macro_steps = 2 ** depth
+        num_macro_steps = 2**depth
         going_backward = bool(rng.binomial(1, 0.5))
         orbit_ext, log_weights_ext = extend_orbit(
             rng,
@@ -302,7 +303,7 @@ def walnuts(rng, theta, logp, grad, inv_mass, macro_step, max_nuts_depth, max_er
         )
         if sub_uturn(orbit_ext, 0, num_macro_steps, inv_mass):
             break
-        accept_prob = max(1.0, np.exp(sum(log_weights_ext) - sum(log_weights)))
+        accept_prob = min(1.0, np.exp(sum(log_weights_ext) - sum(log_weights)))
         accept = bool(rng.binomial(1, accept_prob))
         if accept:
             theta_selected, _ = rng.choice(orbit_ext, p=softmax(log_weights_ext))
@@ -315,3 +316,51 @@ def walnuts(rng, theta, logp, grad, inv_mass, macro_step, max_nuts_depth, max_er
             else log_weights + log_weights_ext
         )
     return theta_selected
+
+
+def walnuts_chain(
+    rng,
+    theta_init,
+    logp,
+    grad,
+    inv_mass,
+    macro_step,
+    max_nuts_depth,
+    max_error,
+    iter_warmup,
+    iter_sample,
+):
+    """Return a Markov chain of samples using the WALNUTS transition operator.
+
+    Args:
+        rng (np.random.Generator): A NumPy random number generator.
+        theta_init (1D array_like (D,)): The starting state vector.
+        logp (function (D,) -> float): A continuously differentiable target log density function.
+        grad (function (D,) -> (D,)): The gradient of the log density.
+        inv_mass (1D array_like (D,)): The diagonal of the inverse mass matrix.
+        macro_step (float > 0): The macro step size.
+        max_nuts_depth (int > 0): The maximum number of doublings per transition.
+        max_error (float > 0): Maximum error in Hamiltonian for adaptive step size.
+        iter_warmup (int >= 0): The number of warmup transitions to discard.
+        iter_sample (int > 0): The number of posterior draws to return.
+
+    Returns:
+        A NumPy array of shape (iter_sample, D) with one column per draw.
+    """
+    theta = np.array(theta_init)
+    D = theta.size
+    draws = np.empty((iter_sample, D))
+    for i in range(iter_warmup + iter_sample):
+        theta = walnuts(
+            rng,
+            theta,
+            logp,
+            grad,
+            inv_mass,
+            macro_step,
+            max_nuts_depth,
+            max_error,
+        )
+        if i >= iter_warmup:
+            draws[i - iter_warmup] = theta
+    return draws
