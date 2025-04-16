@@ -4,6 +4,7 @@ from plotnine import ggplot, aes, geom_point, theme_minimal, labs
 
 from walnuts import walnuts, walnuts_chain
 from targets import standard_normal_lpdf, standard_normal_grad
+from targets import funnel_lpdf, funnel_grad
 
 
 def main():
@@ -20,8 +21,8 @@ def main():
     draws = walnuts_chain(
         rng,
         theta_init,
-        standard_normal_lpdf,
-        standard_normal_grad,
+        funnel_lpdf,
+        funnel_grad,
         inv_mass,
         macro_step,
         max_nuts_depth,
@@ -33,8 +34,9 @@ def main():
     means = draws.mean(axis=0)
     stds = draws.std(axis=0)
 
-    print("Posterior means:", means)
-    print("Posterior stds:", stds)
+    print("Posterior means:\n", means)
+    print("\n")
+    print("Posterior stds:\n", stds)
 
     df = pd.DataFrame({
         "x1": draws[:, 0],

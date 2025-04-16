@@ -21,10 +21,10 @@ def rosenbrock_grad(q):
                          q[0]**2 - q[1]])
 
 def funnel_lpdf(q):
-    return sps.norm.logpdf(q[0], loc=0.0, scale=3.0) + sum(sps.norm.logpdf(q[1:], loc=0.0, scale=np.exp(0.5 * q[0])))
+    return -0.5 * q[0]**2 / 9 - 0.5 * np.dot(q[1:], q[1:]) / np.exp(0.5 * q[0])
 def funnel_grad(q):
     grad = np.empty(q.size)
-    grad[0] = -5.0 - q[0] / 9.0 + 0.5 * np.exp(-q[0])* sum(q[1:] * q[1:])
-    grad[1:] = -q[1:] * np.exp(-q[0])
+    grad[0] = -(q[0] / 9 - 0.25 * np.dot(q[1:], q[1:]) / np.exp(0.5 * q[0]))
+    grad[1:] = -1 / np.exp(0.5 * q[0]) * q[1:]
     return grad
 

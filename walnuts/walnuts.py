@@ -325,8 +325,6 @@ def walnuts(rng, theta, logp, grad, inv_mass, macro_step, max_nuts_depth, max_er
             break
         accept_prob = min(1.0, np.exp(sum(log_weights_ext) - sum(log_weights)))
         accept = bool(rng.binomial(1, accept_prob))
-        print(f"{log_weights_ext=} {softmax(log_weights_ext)=}")
-        print(f"     {orbit_ext=}")
         if accept:
             p = softmax(log_weights_ext)
             if np.isnan(p).any():
