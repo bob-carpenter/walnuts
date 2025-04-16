@@ -16,8 +16,7 @@ def main():
     rng = np.random.default_rng(seed=123)
     D = 2
     theta_init = np.zeros(D)
-    inv_mass = np.array([1.0, 0.1])
-    # np.ones(D)
+    inv_mass = np.ones(D)
     macro_step = 10.0
     max_nuts_depth = 10
     max_error = 0.001

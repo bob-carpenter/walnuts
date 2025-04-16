@@ -368,10 +368,10 @@ def walnuts(
 
     Args:
         rng (np.random.Generator): A NumPy random number generator.
-        theta_init (1D array_like (D,)): The starting state vector.
+        theta_init (array_like (D,)): The starting state vector.
         logp (function (D,) -> float): A continuously differentiable target log density function.
         grad (function (D,) -> (D,)): The gradient of the log density.
-        inv_mass (1D array_like (D,)): The diagonal of the inverse mass matrix.
+        inv_mass (array_like float (D,)): The diagonal of the inverse mass matrix.
         macro_step (float > 0): The macro step size.
         max_nuts_depth (int > 0): The maximum number of doublings per transition.
         max_error (float > 0): Maximum error in Hamiltonian for adaptive step size.
@@ -379,7 +379,7 @@ def walnuts(
         iter_sample (int > 0): The number of posterior draws to return.
 
     Returns:
-        A NumPy array of shape (iter_sample, D) with one column per draw.
+        A NumPy array of shape (iter_sample, D) with one row per draw.
     """
     disable_runtime_warnings()
     theta = np.array(theta_init)
