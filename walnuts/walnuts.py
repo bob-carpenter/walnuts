@@ -1,7 +1,17 @@
 from scipy.special import softmax
+from tqdm import trange
 import numpy as np
+import warnings
 
+def disable_runtime_warnings():
+    """Filters out `RuntimeWarning` messages.
+    
+    Return:
+        None
+    """
+    warnings.filterwarnings("ignore", category=RuntimeWarning)
 
+    
 def uturn(theta_rho1, theta_rho2, inv_mass):
     """Return `True` if there is a U-turn between the positions and momentums.
 
@@ -257,7 +267,7 @@ def extend_orbit(
     return new_orbit, new_weights
 
 
-def walnuts(rng, theta, logp, grad, inv_mass, macro_step, max_nuts_depth, max_error):
+def walnuts_step(rng, theta, logp, grad, inv_mass, macro_step, max_nuts_depth, max_error):
     """Return the next state from WALNUTS given the current state `theta`.
 
     Sequentially drawing from WALNUTS given the previous draw forms a Markov chain, the stationary
@@ -342,7 +352,7 @@ def walnuts(rng, theta, logp, grad, inv_mass, macro_step, max_nuts_depth, max_er
     return theta_selected
 
 
-def walnuts_chain(
+def walnuts(
     rng,
     theta_init,
     logp,
@@ -371,11 +381,12 @@ def walnuts_chain(
     Returns:
         A NumPy array of shape (iter_sample, D) with one column per draw.
     """
+    disable_runtime_warnings()
     theta = np.array(theta_init)
     D = theta.size
     draws = np.empty((iter_sample, D))
-    for i in range(iter_warmup + iter_sample):
-        theta = walnuts(
+    for i in trange(iter_warmup + iter_sample, desc="WALNUTS"):
+        theta = walnuts_step(
             rng,
             theta,
             logp,
@@ -385,7 +396,6 @@ def walnuts_chain(
             max_nuts_depth,
             max_error,
         )
-        print(f"{i = } {theta = }")
         if i >= iter_warmup:
             draws[i - iter_warmup] = theta
     return draws
