@@ -68,6 +68,23 @@ def leapfrog_step(grad, theta, rho, step_size, inv_mass):
     return theta_full, rho_full
 
 
+def leapfrog_steps(grad, theta, rho, step_size, inv_mass, num_steps):
+    """Return the result of multiple leapfrog steps from `(theta, rho)`.
+
+    Args:
+        grad: The gradient function for the target log density.
+        theta: The initial position.
+        rho: The initial momentum.
+        step_size: The interval of time discretization of the dynamics simulator.
+        inv_mass: The diagonal of the inverse mass matrix.
+        num_steps: The number of leapfrog steps to take.
+    Returns:
+        A pair `(theta, rho)` consisting of the final position and final momentum.
+    """
+    for _ in range(num_steps):
+        theta, rho = leapfrog_step(grad, theta, rho, step_size, inv_mass)
+    return theta, rho
+
 def potential_energy(theta, logp):
     """Return the potential energy for the specified position.
 
@@ -169,15 +186,14 @@ def micro_steps_logp(ell, ell_stable):
     """
     if ell == ell_stable or ell == ell_stable // 2 or ell == ell_stable * 2:
         return -np.log(3)
-    return np.NINF
+    return -np.inf
 
 
 def extend_orbit(
     rng,
     going_backward,
-    theta,
-    rho,
-    weight,
+    orbit,
+    weights,
     logp,
     grad,
     inv_mass,
@@ -193,9 +209,8 @@ def extend_orbit(
     Args:
         rng (np.Generator): A random number generator
         going_backward (bool): `True` if evolving chain backward in time
-        theta (np.ndarray (D,)): The previous position.
-        rho (np.ndarray (D,)): The previous momentum.
-        weight (float): The previous log weight.
+        orbit (list(np.ndarray(D, ), np.ndarray(D,))): The current orbit.
+        log_weights (lis(float)): The previous log weights.
         logp (function: np.ndarray(D,) -> float): The target log density function.
         grad (function: np.ndarray(D,) -> np.ndarray(D,)): The target gradient function.
         inv_mass (np.ndarray(D,)): The diagonal of the inverse mass matrix.
@@ -206,7 +221,12 @@ def extend_orbit(
         A pair `(orbit, weights)` of the new orbit and its weights.
     """
     if going_backward:
+        theta, rho = orbit[0]
+        weight = weights[0]
         rho = -rho
+    else:
+        theta, rho = orbit[-1]
+        weight = weights[-1]
     new_orbit = []
     new_weights = []
     for _ in range(num_macro_steps):
@@ -214,14 +234,14 @@ def extend_orbit(
             theta, rho, logp, grad, inv_mass, macro_step, max_error
         )
         ell = choose_micro_steps(rng, ell_stable)
-        theta_next, rho_next = leapfrog_step(
-            theta, rho, logp, grad, inv_mass, ell, macro_step / ell
+        theta_next, rho_next = leapfrog_steps(
+            grad, theta, rho, macro_step / ell, inv_mass, ell
         )
         _, ell_stable_next = stable_steps(
             theta_next, -rho_next, logp, grad, inv_mass, macro_step, max_error
         )
-        p_theta_rho_next = -H(theta_next, rho_next)
-        p_theta_rho = -H(theta, rho)
+        p_theta_rho_next = -H(theta_next, rho_next, logp, inv_mass)
+        p_theta_rho = -H(theta, rho, logp, inv_mass)
         weight_next = (
             p_theta_rho_next
             - p_theta_rho
@@ -233,7 +253,7 @@ def extend_orbit(
         new_weights.append(weight_next)
         theta, rho, weight = theta_next, rho_next, weight_next
     if going_backward:
-        new_orbit, new_weights = np.flip(new_orbit), np.flip(new_weights)
+        new_orbit, new_weights = new_orbit[::-1], new_weights[::-1]
     return new_orbit, new_weights
 
 
@@ -305,8 +325,14 @@ def walnuts(rng, theta, logp, grad, inv_mass, macro_step, max_nuts_depth, max_er
             break
         accept_prob = min(1.0, np.exp(sum(log_weights_ext) - sum(log_weights)))
         accept = bool(rng.binomial(1, accept_prob))
+        print(f"{log_weights_ext=} {softmax(log_weights_ext)=}")
+        print(f"     {orbit_ext=}")
         if accept:
-            theta_selected, _ = rng.choice(orbit_ext, p=softmax(log_weights_ext))
+            p = softmax(log_weights_ext)
+            if np.isnan(p).any():
+                theta_selected, _ = rng.choice(orbit_ext)
+            else:
+                theta_selected, _ = rng.choice(orbit_ext, p=p)
         orbit = orbit_ext + orbit if going_backward else orbit + orbit_ext
         if uturn(orbit[0], orbit[-1], inv_mass):
             break
@@ -361,6 +387,7 @@ def walnuts_chain(
             max_nuts_depth,
             max_error,
         )
+        print(f"{i = } {theta = }")
         if i >= iter_warmup:
             draws[i - iter_warmup] = theta
     return draws
