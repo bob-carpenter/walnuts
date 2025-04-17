@@ -338,11 +338,6 @@ def walnuts_step(rng, theta, logp, grad, inv_mass, macro_step, max_nuts_depth, m
         if accept:
             p = softmax(log_weights_ext)
             theta_selected, _ = rng.choice(orbit_ext, p=p)
-            if np.isnan(p).any():
-                # cheap vectorized compare, but unnecessary if logsumexp stable
-                theta_selected, _ = rng.choice(orbit_ext)
-            else:
-                theta_selected, _ = rng.choice(orbit_ext, p=p)
         orbit = orbit_ext + orbit if going_backward else orbit + orbit_ext
         if uturn(orbit[0], orbit[-1], inv_mass):
             break

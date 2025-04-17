@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from plotnine import ggplot, aes, geom_point, ggtitle, scale_y_continuous
+from plotnine import ggplot, aes, geom_point, geom_histogram, ggtitle, scale_y_continuous, scale_x_continuous
 from walnuts import walnuts
 from targets import standard_normal_lpdf, standard_normal_grad
 from targets import funnel_lpdf, funnel_grad
@@ -13,9 +13,9 @@ def main():
     inv_mass = np.ones(D)
     macro_step = 10.0
     max_nuts_depth = 10
-    max_error = 0.001
+    max_error = 0.1
     iter_warmup = 0
-    iter_sample = 500
+    iter_sample = 10_000
 
     draws = walnuts(
         rng,
@@ -42,6 +42,14 @@ def main():
         "coefficient": draws[:, 1]
     })
 
+    plot_hist = (
+        ggplot(df, aes("log_scale"))
+        + geom_histogram()
+        + ggtitle("Log scale, should be normal(0, 3)")
+        + scale_x_continuous(limits=[-12, 12], breaks = [-12, -9, -6, -3, 0, 3, 6, 9, 12])
+    )
+    plot_hist.show()
+
     plot = (
         ggplot(df, aes("coefficient", "log_scale"))
         + geom_point(alpha=0.5, size=1)
@@ -49,6 +57,7 @@ def main():
         + scale_y_continuous(limits=[-12, 12], breaks = [-12, -9, -6, -3, 0, 3, 6, 9, 12])
     )
     plot.show()
+
 
 
 if __name__ == "__main__":
