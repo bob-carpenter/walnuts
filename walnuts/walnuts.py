@@ -59,26 +59,7 @@ def sub_uturn(orbit, start, end, inv_mass):
     return False
 
 
-def leapfrog_step(grad, theta, rho, step_size, inv_mass):
-    """Return the result of a single leapfrog step from `(theta, rho)`.
-
-    Args:
-        grad: The gradient function for the target log density.
-        theta: The initial position.
-        rho: The initial momentum.
-        step_size: The interval of time discretization of the dynamics simulator.
-        inv_mass: The diagonal of the inverse mass matrix
-    Returns:
-        A pair `(theta_f, rho_f)` consisting of the final position and final momentum.
-    """
-    half_step_size = 0.5 * step_size
-    rho_half = rho + half_step_size * grad(theta)
-    theta_full = theta + step_size * inv_mass * rho_half
-    rho_full = rho_half + half_step_size * grad(theta_full)
-    return theta_full, rho_full
-
-
-def leapfrog_steps(grad, theta, rho, step_size, inv_mass, num_steps):
+def leapfrog(grad, theta, rho, step_size, inv_mass, num_steps):
     """Return the result of multiple leapfrog steps from `(theta, rho)`.
 
     Args:
@@ -91,8 +72,14 @@ def leapfrog_steps(grad, theta, rho, step_size, inv_mass, num_steps):
     Returns:
         A pair `(theta, rho)` consisting of the final position and final momentum.
     """
-    for _ in range(num_steps):
-        theta, rho = leapfrog_step(grad, theta, rho, step_size, inv_mass)
+    half_step_size = 0.5 * step_size
+    step_inv_mass = step_size * inv_mass
+    rho = rho + half_step_size * grad(theta)
+    for _ in range(num_steps - 1):
+        theta = theta + step_inv_mass * rho
+        rho = rho + step_size * grad(theta)
+    theta = theta + step_inv_mass * rho
+    rho = rho + half_step_size * grad(theta)
     return theta, rho
 
 def potential_energy(theta, logp):
@@ -164,10 +151,20 @@ def stable_steps(theta0, rho0, logp, grad, inv_mass, macro_step, max_error):
         ell = 2**n
         step_size = macro_step / ell
         H_min = H_max = H(theta, rho, logp, inv_mass)
-        for j in range(ell):
-            theta, rho = leapfrog_step(grad, theta, rho, step_size, inv_mass)
+        half_step_size = 0.5 * step_size
+        step_inv_mass = step_size * inv_mass
+        rho = rho + half_step_size * grad(theta)
+        for _ in range(ell - 1):
+            theta = theta + step_inv_mass * rho
+            g = grad(theta)
+            rho = rho + half_step_size * g
             H_current = H(theta, rho, logp, inv_mass)
             H_min, H_max = min(H_min, H_current), max(H_max, H_current)
+            rho = rho + half_step_size * g
+        theta = theta + step_inv_mass * rho
+        rho = rho + half_step_size * grad(theta)
+        H_current = H(theta, rho, logp, inv_mass)
+        H_min, H_max = min(H_min, H_current), max(H_max, H_current)
         if H_max - H_min <= max_error:
             return True, ell
     return False, ell
@@ -244,7 +241,8 @@ def extend_orbit(
             theta, rho, logp, grad, inv_mass, macro_step, max_error
         )
         ell = choose_micro_steps(rng, ell_stable)
-        theta_next, rho_next = leapfrog_steps(
+        # TODO(carpenter): if ell = ell_stable, should already have theta, rho
+        theta_next, rho_next = leapfrog(
             grad, theta, rho, macro_step / ell, inv_mass, ell
         )
         _, ell_stable_next = stable_steps(

@@ -1,12 +1,6 @@
-import sys
-import os
-# Add the parent directory of this file to the import path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
 import numpy as np
 import pandas as pd
 from plotnine import ggplot, aes, geom_point, ggtitle, scale_y_continuous
-
 from walnuts import walnuts
 from targets import standard_normal_lpdf, standard_normal_grad
 from targets import funnel_lpdf, funnel_grad
@@ -21,7 +15,7 @@ def main():
     max_nuts_depth = 10
     max_error = 0.001
     iter_warmup = 0
-    iter_sample = 2_000
+    iter_sample = 500
 
     draws = walnuts(
         rng,
