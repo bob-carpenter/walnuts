@@ -1,4 +1,5 @@
 from scipy.special import softmax
+from scipy.special import logsumexp
 from tqdm import trange
 import numpy as np
 import warnings
@@ -331,11 +332,14 @@ def walnuts_step(rng, theta, logp, grad, inv_mass, macro_step, max_nuts_depth, m
         )
         if sub_uturn(orbit_ext, 0, num_macro_steps, inv_mass):
             break
-        accept_prob = min(1.0, np.exp(sum(log_weights_ext) - sum(log_weights)))
-        accept = bool(rng.binomial(1, accept_prob))
+        log_accept_prob_ub = logsumexp(log_weights_ext) - logsumexp(log_weights)
+        log_uniform = np.log(rng.uniform(0, 1))
+        accept = log_uniform < log_accept_prob_ub
         if accept:
             p = softmax(log_weights_ext)
+            theta_selected, _ = rng.choice(orbit_ext, p=p)
             if np.isnan(p).any():
+                # cheap vectorized compare, but unnecessary if logsumexp stable
                 theta_selected, _ = rng.choice(orbit_ext)
             else:
                 theta_selected, _ = rng.choice(orbit_ext, p=p)
