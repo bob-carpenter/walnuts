@@ -235,32 +235,31 @@ def extend_orbit(
     else:
         theta, rho = orbit[-1]
         weight = weights[-1]
-    new_orbit = []
-    new_weights = []
+    new_orbit = [] 
+    new_weights = [] 
     for _ in range(num_macro_steps):
+        p_theta_rho = -H(theta, rho, logp, inv_mass)
         _, ell_stable = stable_steps(
             theta, rho, logp, grad, inv_mass, macro_step, max_error
         )
         ell = choose_micro_steps(rng, ell_stable)
         # TODO(carpenter): if ell = ell_stable, should already have theta, rho
-        theta_next, rho_next = leapfrog(
+        theta, rho = leapfrog(
             grad, theta, rho, macro_step / ell, inv_mass, ell
         )
         _, ell_stable_next = stable_steps(
-            theta_next, -rho_next, logp, grad, inv_mass, macro_step, max_error
+            theta, -rho, logp, grad, inv_mass, macro_step, max_error
         )
-        p_theta_rho_next = -H(theta_next, rho_next, logp, inv_mass)
-        p_theta_rho = -H(theta, rho, logp, inv_mass)
-        weight_next = (
+        p_theta_rho_next = -H(theta, rho, logp, inv_mass)
+        weight = (
             p_theta_rho_next
             - p_theta_rho
             + micro_steps_logp(ell, ell_stable_next)
             - micro_steps_logp(ell, ell_stable)
             + weight
         )
-        new_orbit.append((theta_next, rho_next))
-        new_weights.append(weight_next)
-        theta, rho, weight = theta_next, rho_next, weight_next
+        new_orbit.append((theta, rho))
+        new_weights.append(weight)
     if going_backward:
         new_orbit, new_weights = new_orbit[::-1], new_weights[::-1]
     return new_orbit, new_weights
