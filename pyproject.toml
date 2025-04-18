@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["walnuts"]
+
+[tool.setuptools.package-dir]
+walnuts = "walnuts"
+
+[project]
+name = "walnuts"
+version = "0.1.0"
+description = "WALNUTS MCMC Sampler"
+authors = [
+  { name = "Bob Carpenter", email = "bcarpenter@flatironinstitute.org" },
+  { name = "Nawaf Bou-Rabee" },
+  { name = "Tore Selland Kleppe" },
+  { name = "Sifan Liu" }
+]
+dependencies = ["numpy", "scipy", "tqdm"]
