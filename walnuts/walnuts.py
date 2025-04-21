@@ -33,7 +33,7 @@ def uturn(theta_rho1, theta_rho2, inv_mass):
     return np.dot(rho1, diff) < 0 or np.dot(rho2, diff) < 0
 
 
-def sub_uturn(orbit, start, end, inv_mass):
+def sub_uturn2(orbit, start, end, inv_mass):
     """Return `True` if there is a sub-U-turn in `orbit[start:end]`.
 
     An orbit has a sub-U-turn if (a) the orbit has a U-turn, (b) the
@@ -58,6 +58,17 @@ def sub_uturn(orbit, start, end, inv_mass):
             orbit, mid, end, inv_mass
         )
     return False
+
+def sub_uturn(orbit, start_ignore, end_ignore, inv_mass):
+    length = np.shape(orbit)[0]
+    span = length
+    while span >= 2:
+        for i in range(length // span):
+            if uturn(orbit[span * i], orbit[span * (i + 1) - 1], inv_mass):
+                return True
+        span = span // 2
+    return False
+
 
 
 def leapfrog(grad, theta, rho, step_size, inv_mass, num_steps):

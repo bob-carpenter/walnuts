@@ -11,17 +11,17 @@ def main():
     D = 2
     theta_init = np.zeros(D)
     inv_mass = np.ones(D)
-    macro_step = 10.0
+    macro_step = 2.0
     max_nuts_depth = 10
     max_error = 0.1
     iter_warmup = 0
-    iter_sample = 10_000
+    iter_sample = 1_000
 
     draws = walnuts(
         rng,
         theta_init,
-        funnel_lpdf,
-        funnel_grad,
+        standard_normal_lpdf,
+        standard_normal_grad,
         inv_mass,
         macro_step,
         max_nuts_depth,
@@ -45,8 +45,7 @@ def main():
     plot_hist = (
         ggplot(df, aes("log_scale"))
         + geom_histogram()
-        + ggtitle("Log scale, should be normal(0, 3)")
-        + scale_x_continuous(limits=[-12, 12], breaks = [-12, -9, -6, -3, 0, 3, 6, 9, 12])
+        # + scale_x_continuous(limits=[-12, 12], breaks = [-12, -9, -6, -3, 0, 3, 6, 9, 12])
     )
     plot_hist.show()
 
@@ -54,7 +53,7 @@ def main():
         ggplot(df, aes("coefficient", "log_scale"))
         + geom_point(alpha=0.5, size=1)
         + ggtitle("WALNUTS draws")
-        + scale_y_continuous(limits=[-12, 12], breaks = [-12, -9, -6, -3, 0, 3, 6, 9, 12])
+        # + scale_y_continuous(limits=[-12, 12], breaks = [-12, -9, -6, -3, 0, 3, 6, 9, 12])
     )
     plot.show()
 
