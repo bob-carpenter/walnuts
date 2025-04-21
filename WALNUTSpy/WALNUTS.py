@@ -199,7 +199,8 @@ def WALNUTS(lpFun,
         L_ = 0
         orbitLen_ = 0.0
         orbitLenSam_ = 0.0
-        
+        NdoublSampled_ = 0
+        NdoublComputed_ = 0
         
         warmup = iterN<=warmupIter
         
@@ -641,8 +642,8 @@ def WALNUTS(lpFun,
         else:
             usedSteps = np.r_[1:(maxFint+1)]
                 
-
-        orbitEnergyError = np.max(Hs[I0+usedSteps]) - np.min(Hs[I0+usedSteps])
+        enUsedSteps = np.r_[0,usedSteps]
+        orbitEnergyError = np.max(Hs[I0+enUsedSteps]) - np.min(Hs[I0+enUsedSteps])
 
         diagnostics[iterN-1,0] = L_
         diagnostics[iterN-1,1] = NdoublSampled_
