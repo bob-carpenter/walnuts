@@ -55,6 +55,10 @@ walnuts/
 │   ├── WALNUTS.py 
 ```
 
+`example.py` provides an example of the usage of this sampler. The file `adaptiveIntegrators.py` contain several different adaptive integrators, and also `fixedLeapFrog()` which turns the sampler into a regular NUTS sampler.
+
+
+
 ## References
 
 1. Nawaf Bou-Rabee, Bob Carpenter, Tore Selland Kleppe, and Sifan
