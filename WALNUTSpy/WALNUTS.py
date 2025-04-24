@@ -312,7 +312,7 @@ def WALNUTS(lpFun,
                     lwts[I0+1] = intOut.lwt
                     if(warmup and adaptH): igrConstQ.push(np.log(intOut.igrConst))
                     maxFint = 1
-                    timeLenF_ = Hs[I0]
+                    timeLenF_ = HLoc
                     if(not np.isfinite(Hs[I0+1])):
                         forcedReject = True
                         stopCode = 999
@@ -325,7 +325,7 @@ def WALNUTS(lpFun,
                     #if(random.uniform()<min(1.0,Wnew)):
                     qProp = qp
                     L_ = 1
-                    indexStat_ = Hs[I0]
+                    indexStat_ = timeLenF_
 
                     
                     if(recordOrbitStats):
@@ -346,7 +346,7 @@ def WALNUTS(lpFun,
                     lwts[I0-1] = intOut.lwt
                     if(warmup and adaptH): igrConstQ.push(np.log(intOut.igrConst))
                     maxBint = -1
-                    timeLenB_ = Hs[I0]
+                    timeLenB_ = HLoc
                     if(not np.isfinite(Hs[I0-1])):
                         forcedReject = True
                         stopCode = 999
@@ -358,7 +358,7 @@ def WALNUTS(lpFun,
                     #if(random.uniform()<min(1.0,Wnew)):
                     qProp = qm
                     L_ = -1
-                    indexStat_ = -Hs[I0]
+                    indexStat_ = -timeLenB_
 
                     
                     if(recordOrbitStats):
@@ -410,7 +410,7 @@ def WALNUTS(lpFun,
                             lwts[I0+i1] = intOut.lwt
                             if(warmup and adaptH): igrConstQ.push(np.log(intOut.igrConst))
                             maxBint = i1
-                            timeLenB_ += Hs[I0+i1+1]
+                            timeLenB_ += HLoc1[0]
                             if(not np.isfinite(Hs[I0+i1])):
                                 forcedReject = True
                                 stopCode = 999
@@ -453,7 +453,7 @@ def WALNUTS(lpFun,
                             lwts[I0+i2] = intOut.lwt
                             if(warmup and adaptH): igrConstQ.push(np.log(intOut.igrConst))
                             maxBint = i2
-                            timeLenB_ += Hs[I0+i2+1]
+                            timeLenB_ += HLoc1[1]
                             if(not np.isfinite(Hs[I0+i2])):
                                 forcedReject = True
                                 break
@@ -497,7 +497,7 @@ def WALNUTS(lpFun,
                             lwts[I0+i1] = intOut.lwt
                             if(warmup and adaptH): igrConstQ.push(np.log(intOut.igrConst))
                             maxFint = i1
-                            timeLenF_ += Hs[I0+i1-1]
+                            timeLenF_ += HLoc1[0]
                             if(not np.isfinite(Hs[I0+i1])):
                                 forcedReject = True
                                 stopCode = 999
@@ -540,7 +540,7 @@ def WALNUTS(lpFun,
                             lwts[I0+i2] = intOut.lwt
                             if(warmup and adaptH): igrConstQ.push(np.log(intOut.igrConst))
                             maxFint = i2
-                            timeLenF_ += Hs[I0+i2-1]
+                            timeLenF_ += HLoc1[1]
                             if(not np.isfinite(Hs[I0+i2])):
                                 forcedReject = True
                                 break
