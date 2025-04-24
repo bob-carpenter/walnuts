@@ -177,7 +177,7 @@ def WALNUTS(lpFun,
     qc = q0 # current state
 
     # diagnositics info
-    diagnostics = np.zeros((numIter,23))
+    diagnostics = np.zeros((numIter,24))
     
     if(recordOrbitStats):
         orbitMin = np.zeros((dg,numIter))
@@ -201,6 +201,10 @@ def WALNUTS(lpFun,
         orbitLenSam_ = 0.0
         NdoublSampled_ = 0
         NdoublComputed_ = 0
+        indexStat_ = 0.0
+        indexStatOld_ = 0.0
+        timeLenF_ = 0.0
+        timeLenB_ = 0.0
         
         warmup = iterN<=warmupIter
         
@@ -281,11 +285,13 @@ def WALNUTS(lpFun,
             at = a + xi*(2**i)
             bt = b + xi*(2**i)
             
+            numStates = max(bt,b) - min(at,a) + 1
 
             # more bookkeeping
             expandFurther = True
             qPropLast = qProp
             Lold_ = L_
+            indexStatOld_ = indexStat_
 
             if(i==0): # single first integration step required
                 
@@ -306,6 +312,7 @@ def WALNUTS(lpFun,
                     lwts[I0+1] = intOut.lwt
                     if(warmup and adaptH): igrConstQ.push(np.log(intOut.igrConst))
                     maxFint = 1
+                    timeLenF_ = Hs[I0]
                     if(not np.isfinite(Hs[I0+1])):
                         forcedReject = True
                         stopCode = 999
@@ -318,6 +325,7 @@ def WALNUTS(lpFun,
                     #if(random.uniform()<min(1.0,Wnew)):
                     qProp = qp
                     L_ = 1
+                    indexStat_ = Hs[I0]
 
                     
                     if(recordOrbitStats):
@@ -338,6 +346,7 @@ def WALNUTS(lpFun,
                     lwts[I0-1] = intOut.lwt
                     if(warmup and adaptH): igrConstQ.push(np.log(intOut.igrConst))
                     maxBint = -1
+                    timeLenB_ = Hs[I0]
                     if(not np.isfinite(Hs[I0-1])):
                         forcedReject = True
                         stopCode = 999
@@ -349,6 +358,7 @@ def WALNUTS(lpFun,
                     #if(random.uniform()<min(1.0,Wnew)):
                     qProp = qm
                     L_ = -1
+                    indexStat_ = -Hs[I0]
 
                     
                     if(recordOrbitStats):
@@ -400,6 +410,7 @@ def WALNUTS(lpFun,
                             lwts[I0+i1] = intOut.lwt
                             if(warmup and adaptH): igrConstQ.push(np.log(intOut.igrConst))
                             maxBint = i1
+                            timeLenB_ += Hs[I0+i1+1]
                             if(not np.isfinite(Hs[I0+i1])):
                                 forcedReject = True
                                 stopCode = 999
@@ -415,6 +426,7 @@ def WALNUTS(lpFun,
                             if(WnewSum > __wtSumThresh and random.uniform()<Wnew/WnewSum):
                                 qProp = qm
                                 L_ = i1
+                                indexStat_ = -timeLenB_
                             
                             states.statePush(i1,np.concatenate([qm,vm,gm]))
                             orbitLen_ += HLoc1[0]
@@ -441,7 +453,7 @@ def WALNUTS(lpFun,
                             lwts[I0+i2] = intOut.lwt
                             if(warmup and adaptH): igrConstQ.push(np.log(intOut.igrConst))
                             maxBint = i2
-                            
+                            timeLenB_ += Hs[I0+i2+1]
                             if(not np.isfinite(Hs[I0+i2])):
                                 forcedReject = True
                                 break
@@ -452,6 +464,7 @@ def WALNUTS(lpFun,
                             if(WnewSum > __wtSumThresh and random.uniform()<Wnew/WnewSum):
                                 qProp = qm
                                 L_ = i2
+                                indexStat_ = -timeLenB_
 
                             # store state for future u-turn-checking
                             states.statePush(i2,np.concatenate([qm,vm,gm]))
@@ -484,6 +497,7 @@ def WALNUTS(lpFun,
                             lwts[I0+i1] = intOut.lwt
                             if(warmup and adaptH): igrConstQ.push(np.log(intOut.igrConst))
                             maxFint = i1
+                            timeLenF_ += Hs[I0+i1-1]
                             if(not np.isfinite(Hs[I0+i1])):
                                 forcedReject = True
                                 stopCode = 999
@@ -498,6 +512,8 @@ def WALNUTS(lpFun,
                             if(WnewSum > __wtSumThresh and random.uniform()<Wnew/WnewSum):
                                 qProp = qp
                                 L_ = i1
+                                indexStat_ = timeLenF_
+                                
                             # store state for future u-turn-checking
                             states.statePush(i1,np.concatenate([qp,vp,gp]))
                             orbitLen_ += HLoc1[0]
@@ -524,6 +540,7 @@ def WALNUTS(lpFun,
                             lwts[I0+i2] = intOut.lwt
                             if(warmup and adaptH): igrConstQ.push(np.log(intOut.igrConst))
                             maxFint = i2
+                            timeLenF_ += Hs[I0+i2-1]
                             if(not np.isfinite(Hs[I0+i2])):
                                 forcedReject = True
                                 break
@@ -537,6 +554,7 @@ def WALNUTS(lpFun,
                             if(WnewSum > __wtSumThresh and random.uniform()<Wnew/WnewSum):
                                 qProp = qp
                                 L_ = i2
+                                indexStat_ = timeLenF_
 
                             # store state for future u-turn-checking
                             states.statePush(i2,np.concatenate([qp,vp,gp]))
@@ -574,10 +592,13 @@ def WALNUTS(lpFun,
                 break
             
             
+            indexStat_ = indexStat_/(timeLenF_+timeLenB_)
+            
             if(not expandFurther):
                 # proposed subOrbit had a sub-U-turn
                 qProp = qPropLast
                 L_ = Lold_
+                indexStat_ = indexStatOld_
                 NdoublSampled_ = i
                 NdoublComputed_ = i+1
                 stopCode = 5
@@ -591,6 +612,7 @@ def WALNUTS(lpFun,
                 
                 if(not (random.uniform() < WnewSum/WoldSum)):
                     L_ = Lold_
+                    indexStat_ = indexStatOld_
                     qProp = qPropLast
                         
                 
@@ -668,6 +690,7 @@ def WALNUTS(lpFun,
         diagnostics[iterN-1,20] = NdoublComputed_
         diagnostics[iterN-1,21] = np.min(cs[I0+usedSteps])
         diagnostics[iterN-1,22] = np.max(cs[I0+usedSteps])
+        diagnostics[iterN-1,23] = indexStat_
         
         samples[:,iterN] = generated(qc)
         
