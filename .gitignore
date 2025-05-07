@@ -3,6 +3,11 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Basic c++ files
+a.out
+perf.data
+perf.data.old
+
 # C extensions
 *.so
 
