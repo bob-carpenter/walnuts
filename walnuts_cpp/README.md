@@ -72,3 +72,11 @@ For instance, if we have `ninja` installed locally we can use it with `--build` 
 cmake -S . -B "build" -G Ninja -DCMAKE_BUILD_TYPE=RELEASE -DWALNUTS_BUILD_TESTS=ON -DWALNUTS_BUILD_BENCHMARKS=ON
 cmake --build build --parallel 3 --target normal_nuts
 ```
+
+When in the `build` directory you can call `cmake ..` to run cmake again.
+This is nice for refreshing variables with `cmake .. --fresh`
+
+##### Debugging CMake
+
+Setting `-DCMAKE_BUILD_TYPE=DEBUG` will make the make file generation verbose.
+For all other build types you can add `VERBOSE=1` to your make call to see a trace of the actions CMake performs.

@@ -20,7 +20,7 @@ endif()
 option(WALNUTS_BUILD_TESTS "Build the test targets for the library" ON)
 option(WALNUTS_BUILD_BENCHMARKS "Build the benchmarks target" ON)
 option(WALNUTS_BUILD_DOXYGEN "Build the doxygen docs target" OFF)
-
+option(WALNUTS_BUILD_PERFORMANCE_TESTING "Build the performance testing targets" ON)
 if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     add_compile_options(-Wno-deprecated-declarations)
 endif()
@@ -163,6 +163,14 @@ endif()
 if (WALNUTS_BUILD_BENCHMARKS)
     add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/benchmarks)
 endif()
+
+##########################
+## Performance Testing  ##
+##########################
+if (WALNUTS_BUILD_PERFORMANCE_TESTING)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/perf_tests)
+endif()
+
 
 # Check if Doxygen is installed
 if (WALNUTS_BUILD_DOXYGEN)
