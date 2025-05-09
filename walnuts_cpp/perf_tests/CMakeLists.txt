@@ -11,13 +11,15 @@ find_program(PERF_EXECUTABLE
   REQUIRED
 )
 
-# 2) Allow the user to override default perf record & report args
+# perf record default arguments
 set(WALNUTS_PERF_RECORD_ARGS
     -F 99 -g --call-graph dwarf
     CACHE STRING "Default arguments for 'perf record'")
+# perf report default arguments
 set(WALNUTS_PERF_REPORT_ARGS
     -g --call-graph graph --stdio --stdio-color=always
     CACHE STRING "Default arguments for 'perf report'")
+# perf record output directory
 set(WALNUTS_PERF_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/data CACHE STRING "Output directory for perf data")
 
 # 3) Define a function to generate a profiling target
