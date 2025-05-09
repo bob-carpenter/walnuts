@@ -22,6 +22,7 @@ option(WALNUTS_BUILD_TESTS "Build the test targets for the library" OFF)
 option(WALNUTS_BUILD_BENCHMARKS "Build the benchmarks target" OFF)
 option(WALNUTS_BUILD_DOXYGEN "Build the doxygen docs target" OFF)
 option(WALNUTS_BUILD_PERFORMANCE_TESTING "Build the performance testing targets" OFF)
+option(WALNUTS_BUILD_TARBALL "Build the tarball for the library" OFF)
 if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     add_compile_options(-Wno-deprecated-declarations)
 endif()
@@ -204,4 +205,25 @@ if (WALNUTS_BUILD_DOXYGEN)
     else()
         message("Doxygen need to be installed to generate the doxygen documentation")
     endif()
+endif()
+
+
+############################
+## Build Release Tarball  ##
+############################
+
+if (WALNUTS_BUILD_TARBALL)
+install(DIRECTORY "${FETCHCONTENT_BASE_DIR}/eigen/src/Eigen"
+        DESTINATION include/Eigen
+        FILES_MATCHING PATTERN "*.h")
+install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/walnuts"
+        DESTINATION include/walnuts)
+include(CPack)
+set(CPACK_PACKAGE_NAME        walnuts)
+set(CPACK_PACKAGE_VERSION     ${PROJECT_VERSION})
+set(CPACK_SOURCE_GENERATOR    TGZ)       # .tar.gz; you can also add “ZIP”
+# ignore build‐dirs, git metadata, editor swap files, etc.
+set(CPACK_SOURCE_IGNORE_FILES
+    "/build/;/.git/;.gitignore$;~$"
+)
 endif()

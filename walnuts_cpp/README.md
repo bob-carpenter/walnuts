@@ -73,3 +73,13 @@ This is nice for refreshing variables with `cmake .. --fresh`
 
 Setting `-DCMAKE_BUILD_TYPE=DEBUG` will make the make file generation verbose.
 For all other build types you can add `VERBOSE=1` to your make call to see a trace of the actions CMake performs.
+
+#### Packaging For Release
+
+Use cpack to put the includes and third party libraries in one tar. These following code will create the tarballs with dependencies for releases.
+
+```bash
+cmake -S . -B "build" -DCMAKE_INSTALL_PREFIX=$PWD/build/install -DWALNUTS_BUILD_TARBALL=ON
+cmake --build build --target install
+cmake --build build --target package
+```

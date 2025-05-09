@@ -1,9 +1,3 @@
-# perf_tests/CMakeLists.txt
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/cmake_deps)
-# ──────────────────────────────────────────────────────────────
-# In your top-level CMakeLists.txt (or a common .cmake include)
-# ──────────────────────────────────────────────────────────────
-
 # 1) Find perf on the system
 find_program(PERF_EXECUTABLE
   NAMES perf
