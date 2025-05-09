@@ -17,10 +17,11 @@ endif()
 ##########################
 # NOTE: I'm turning tests and benchmarks on by default
 # Though normally these are off to help build speeds and remove bloat
-option(WALNUTS_BUILD_TESTS "Build the test targets for the library" ON)
-option(WALNUTS_BUILD_BENCHMARKS "Build the benchmarks target" ON)
+option(WALNUTS_BUILD_EXAMPLES "Build the example targets for the library" ON)
+option(WALNUTS_BUILD_TESTS "Build the test targets for the library" OFF)
+option(WALNUTS_BUILD_BENCHMARKS "Build the benchmarks target" OFF)
 option(WALNUTS_BUILD_DOXYGEN "Build the doxygen docs target" OFF)
-option(WALNUTS_BUILD_PERFORMANCE_TESTING "Build the performance testing targets" ON)
+option(WALNUTS_BUILD_PERFORMANCE_TESTING "Build the performance testing targets" OFF)
 if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     add_compile_options(-Wno-deprecated-declarations)
 endif()
@@ -149,6 +150,14 @@ target_include_directories(${PROJECT_NAME} INTERFACE
 )
 
 add_library(walnuts::walnuts ALIAS ${PROJECT_NAME})
+
+##########################
+##       Example        ##
+##########################
+if (WALNUTS_BUILD_EXAMPLES)
+    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/examples)
+endif()
+
 
 ##########################
 ##       Testing        ##

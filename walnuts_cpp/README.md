@@ -2,30 +2,23 @@
 
 First, we are building and integrating NUTS.  Second, we will extend to WALNUTS.
 
-## Running NUTS sampler
-
-First, you need to download the Eigen 3.4.0 source and place it in a directory `walnuts_cpp/lib/eigen-3.4.0`.
-
-### Compiling and running
+## Compiling and running
 
 From the `walnuts_cpp` folder call the following for the benchmarks and testing.
 
 ```bash
 # Call cmake with our source as our current directory and build in a new folder "build"
-cmake -S . -B "build" -DCMAKE_BUILD_TYPE=RELEASE -DWALNUTS_BUILD_TESTS=ON -DWALNUTS_BUILD_BENCHMARKS=ON
+cmake -S . -B "build" -DCMAKE_BUILD_TYPE=RELEASE
 cd build
 # List possible targets
 make help
-make -j3 normal_nuts
-# After building
-./benchmarks/normal_nuts
 make -j3 test_nuts
-./tests/test_nuts
+./examples/test_nuts
 ```
 
-#### CMake Tips
+### CMake Tips
 
-##### View Optional Project Flags
+#### View Optional Project Flags
 
 To view the optional flags for cmake with this project call `cmake -S . -B "build" -LH` and grep for cmake variables that start with walnuts.
 
@@ -36,11 +29,11 @@ WALNUTS_BUILD_DOXYGEN:BOOL=OFF
 WALNUTS_BUILD_TESTS:BOOL=ON
 ```
 
-##### Include Variables When Compiling
+#### Include Variables When Compiling
 
 To set variables when compiling cmake we use `-DVARIABLE_NAME=VALUE` like setting a macro.
 
-##### Refresh CMake
+#### Refresh CMake
 
 Cmake stores a `CMakeCache.txt` file with the variables from your most recent build.
 For an existing build you want to completely refresh use `--fresh` when building.
@@ -49,7 +42,7 @@ For an existing build you want to completely refresh use `--fresh` when building
 cmake -S . -B "build" --fresh
 ```
 
-##### View Project Targets
+#### View Project Targets
 
 To see the available targets from the top level directory run the following after building
 
@@ -76,7 +69,7 @@ cmake --build build --parallel 3 --target normal_nuts
 When in the `build` directory you can call `cmake ..` to run cmake again.
 This is nice for refreshing variables with `cmake .. --fresh`
 
-##### Debugging CMake
+#### Debugging CMake
 
 Setting `-DCMAKE_BUILD_TYPE=DEBUG` will make the make file generation verbose.
 For all other build types you can add `VERBOSE=1` to your make call to see a trace of the actions CMake performs.
