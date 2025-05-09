@@ -1,9 +1,9 @@
+#include <walnuts/nuts.hpp>
 #include <iostream>
 #include <random>
 #include <numeric>
 #include <cmath>
 #include <chrono>
-#include "nuts.hpp"
 
 using S = double;
 using VectorS = Eigen::Matrix<S, -1, 1>;
@@ -26,7 +26,6 @@ void standard_normal_logp_grad(const Eigen::Matrix<T, Eigen::Dynamic, 1>& x,
 
 int main() {
   int init_seed = 333456;
-  int seed = 763545;
   int D = 10;
   int N = 10000;
   S step_size = 0.025;
