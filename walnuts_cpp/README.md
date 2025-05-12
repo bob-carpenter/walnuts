@@ -83,3 +83,11 @@ cmake -S . -B "build" -DCMAKE_INSTALL_PREFIX=$PWD/build/install -DWALNUTS_BUILD_
 cmake --build build --target install
 cmake --build build --target package
 ```
+
+#### Formatting
+
+```
+cd walnuts_cpp
+clang-format clang-format -i -style=LLVM nuts.hpp test.cpp
+```
+

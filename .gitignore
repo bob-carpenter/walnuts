@@ -180,3 +180,9 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+
+# Mac OS
+*.DS_Store
+
+# Created executables
+walnuts_cpp/test
