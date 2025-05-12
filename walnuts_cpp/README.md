@@ -7,7 +7,9 @@ First, we are building and integrating NUTS.  Second, we will extend to WALNUTS.
 From the `walnuts_cpp` folder call the following for the benchmarks and testing.
 
 ```bash
-# Call cmake with our source as our current directory and build in a new folder "build"
+# Run cmake with
+# The source directory as our current directory (-S .)
+# and build in a new folder "build" (-B "build")
 cmake -S . -B "build" -DCMAKE_BUILD_TYPE=RELEASE
 cd build
 # List possible targets
