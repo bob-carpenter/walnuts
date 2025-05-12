@@ -16,9 +16,39 @@ make -j3 test_nuts
 ./examples/test_nuts
 ```
 
-### CMake Tips
+## Structure
 
-#### View Optional Project Flags
+```
+walnuts_cpp
+# For runnning google benchmark
+├── benchmarks
+│   ├── CMakeLists.txt
+│   └── normal_nuts.cpp
+# Global dependencies
+├── cmake_deps
+│   └── CMakeLists.txt
+├── CMakeLists.txt
+# Example of nuts
+├── examples
+│   ├── CMakeLists.txt
+│   ├── test_stan.cpp
+│   └── test.cpp
+# Headers for algorithms
+├── include
+│   └── walnuts
+│       └── nuts.hpp
+# For automated perf tests
+├── perf_tests
+│   ├── CMakeLists.txt
+│   └── readme.md
+├── README.md
+└── tests
+    └── CMakeLists.txt
+```
+
+## CMake Tips
+
+### View Optional Project Flags
 
 To view the optional flags for cmake with this project call `cmake -S . -B "build" -LH` and grep for cmake variables that start with walnuts.
 
@@ -29,11 +59,11 @@ WALNUTS_BUILD_DOXYGEN:BOOL=OFF
 WALNUTS_BUILD_TESTS:BOOL=ON
 ```
 
-#### Include Variables When Compiling
+### Include Variables When Compiling
 
 To set variables when compiling cmake we use `-DVARIABLE_NAME=VALUE` like setting a macro.
 
-#### Refresh CMake
+### Refresh CMake
 
 Cmake stores a `CMakeCache.txt` file with the variables from your most recent build.
 For an existing build you want to completely refresh use `--fresh` when building.
@@ -42,7 +72,7 @@ For an existing build you want to completely refresh use `--fresh` when building
 cmake -S . -B "build" --fresh
 ```
 
-#### View Project Targets
+### View Project Targets
 
 To see the available targets from the top level directory run the following after building
 
@@ -69,12 +99,12 @@ cmake --build build --parallel 3 --target normal_nuts
 When in the `build` directory you can call `cmake ..` to run cmake again.
 This is nice for refreshing variables with `cmake .. --fresh`
 
-#### Debugging CMake
+### Debugging CMake
 
 Setting `-DCMAKE_BUILD_TYPE=DEBUG` will make the make file generation verbose.
 For all other build types you can add `VERBOSE=1` to your make call to see a trace of the actions CMake performs.
 
-#### Packaging For Release
+### Packaging For Release
 
 Use cpack to put the includes and third party libraries in one tar. These following code will create the tarballs with dependencies for releases.
 
@@ -84,7 +114,7 @@ cmake --build build --target install
 cmake --build build --target package
 ```
 
-#### Formatting
+## Formatting
 
 ```
 cd walnuts_cpp
