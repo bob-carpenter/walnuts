@@ -17,10 +17,9 @@ endif()
 ## Cmake Options        ##
 ##########################
 option(WALNUTS_BUILD_EXAMPLES "Build the example targets for the library" ON)
-
 # Build Types
-set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE}
-    CACHE STRING "Choose the type of build, options are: None Debug Release"
+set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING
+    "Choose the type of build, options are: None Debug Release"
     FORCE)
 
 ##########################
@@ -34,14 +33,12 @@ FetchContent_Declare(
   GIT_TAG        3.4.0
 )
 FetchContent_Populate(Eigen)   # ⇒ eigen_SOURCE_DIR / eigen_BINARY_DIR
-
 # 1) Create an INTERFACE library for the headers
 add_library(eigen_headers INTERFACE)
 target_include_directories(eigen_headers
   INTERFACE
     ${eigen_SOURCE_DIR}      # root of Eigen repo: contains Eigen/ and unsupported/
 )
-
 # 2) Alias it so downstream CMakeLists can do find-like targets
 add_library(Eigen3::Eigen ALIAS eigen_headers)
 
@@ -56,7 +53,6 @@ target_include_directories(walnuts INTERFACE
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>  # for builds
   $<INSTALL_INTERFACE:include>                            # for installs
 )
-
 # 2) Create the “namespace” alias
 add_library(walnuts::walnuts ALIAS walnuts)
 
