@@ -1,0 +1,4 @@
+@PACKAGE_INIT@
+
+# Tell CMake where to find our targets file
+include("${CMAKE_CURRENT_LIST_DIR}/walnutsTargets.cmake")

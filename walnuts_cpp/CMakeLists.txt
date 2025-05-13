@@ -1,8 +1,9 @@
-cmake_minimum_required(VERSION 3.20.2)
-project(
-    walnuts
-    VERSION 0.1.0
-    LANGUAGES C CXX)
+cmake_minimum_required(VERSION 3.14)
+project(walnuts
+  VERSION 0.1.0
+  DESCRIPTION "Header-only NUTS sampler library"
+  LANGUAGES CXX
+)
 
 include(FetchContent)
 set(CMAKE_CXX_STANDARD 20)
@@ -15,14 +16,7 @@ endif()
 ##########################
 ## Cmake Options        ##
 ##########################
-# NOTE: I'm turning tests and benchmarks on by default
-# Though normally these are off to help build speeds and remove bloat
 option(WALNUTS_BUILD_EXAMPLES "Build the example targets for the library" ON)
-option(WALNUTS_BUILD_TESTS "Build the test targets for the library" OFF)
-option(WALNUTS_BUILD_BENCHMARKS "Build the benchmarks target" OFF)
-option(WALNUTS_BUILD_DOXYGEN "Build the doxygen docs target" OFF)
-option(WALNUTS_BUILD_PERFORMANCE_TESTING "Build the performance testing targets" OFF)
-option(WALNUTS_BUILD_TARBALL "Build the tarball for the library" OFF)
 if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
     add_compile_options(-Wno-deprecated-declarations)
 endif()
@@ -77,153 +71,94 @@ endif()
 
 if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
   set(CMAKE_CXX_FLAGS_RELEASE
-      "-O3 -march=native -mtune=native"
+      "-O3"
       CACHE STRING "Flags used by the C++ compiler during Release builds."
       FORCE)
 endif()
 
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake" ${CMAKE_MODULE_PATH})
-
 ##########################
 ## Global Dependencies  ##
 ##########################
-add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/cmake_deps)
+include(FetchContent)
 
+FetchContent_Declare(
+  Eigen
+  GIT_REPOSITORY https://gitlab.com/libeigen/eigen.git
+  GIT_TAG        3.4.0
+)
+FetchContent_Populate(Eigen)   # ⇒ eigen_SOURCE_DIR / eigen_BINARY_DIR
 
-if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    add_compile_options(
-      -DNO_FPRINTF_OUTPUT
-      -Wall)
-endif()
-
-
-##########################
-# Library Setup
-# The next section sets everything up so that
-#  other cmake libraries can use FetchContent
-#  to pull in this library and include it as
-#  dependency.
-# i.e.
-# FetchContent_Declare(walnuts
-#         GIT_REPOSITORY https://github.com/bob-carpenter/walnuts
-#         GIT_TAG main)
-#
-# FetchContent_MakeAvailable(walnuts)
-#
-# add_executable(test_nuts test.cpp)
-# target_link_libraries(test_nuts PRIVATE Eigen3::Eigen walnuts::walnuts)
-#
-# walnuts::walnuts links a target to our include and any
-#  shared object or static libraries we make in the future.
-##########################
-
-# Define the include directory for this library
-add_library(${PROJECT_NAME} INTERFACE)
-target_include_directories(${PROJECT_NAME} INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
+# 1) Create an INTERFACE library for the headers
+add_library(eigen_headers INTERFACE)
+target_include_directories(eigen_headers
+  INTERFACE
+    ${eigen_SOURCE_DIR}      # root of Eigen repo: contains Eigen/ and unsupported/
 )
 
-# Optionally, specify install rules for your library
-# This is necessary for FetchContent to work properly
-install(TARGETS ${PROJECT_NAME}
-    EXPORT ${PROJECT_NAME}Targets
-    INCLUDES DESTINATION include
+# 2) Alias it so downstream CMakeLists can do find-like targets
+add_library(Eigen3::Eigen ALIAS eigen_headers)
+
+
+#############################
+## Making Walnuts Library  ##
+#############################
+
+# 1) Define your header-only interface target
+add_library(walnuts INTERFACE)
+target_include_directories(walnuts INTERFACE
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>  # for builds
+  $<INSTALL_INTERFACE:include>                            # for installs
+)
+
+# 2) Create the “namespace” alias
+add_library(walnuts::walnuts ALIAS walnuts)
+
+# 3) Installation rules
+install(TARGETS walnuts
+  EXPORT walnutsTargets
+  INCLUDES DESTINATION include
 )
 install(DIRECTORY include/ DESTINATION include)
 
-# Create and install the CMake configuration files for your library
+# 4) Export the targets file
+install(EXPORT walnutsTargets
+  FILE walnutsTargets.cmake
+  NAMESPACE walnuts::
+  DESTINATION lib/cmake/walnuts
+)
+
+# 5) Generate a simple package config that just pulls in the exported targets
 include(CMakePackageConfigHelpers)
 write_basic_package_version_file(
-    "${PROJECT_NAME}ConfigVersion.cmake"
-    VERSION ${VERSION}
-    COMPATIBILITY SameMajorVersion
-)
-install(EXPORT ${PROJECT_NAME}Targets
-    FILE ${PROJECT_NAME}Config.cmake
-    NAMESPACE walnuts::
-    DESTINATION lib/cmake/${PROJECT_NAME}
+  "${CMAKE_CURRENT_BINARY_DIR}/walnutsConfigVersion.cmake"
+  VERSION ${PROJECT_VERSION}
+  COMPATIBILITY SameMajorVersion
 )
 
-target_include_directories(${PROJECT_NAME} INTERFACE
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-    $<INSTALL_INTERFACE:include>
+configure_package_config_file(
+  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/walnutsConfig.cmake.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/walnutsConfig.cmake"
+  INSTALL_DESTINATION "lib/cmake/walnuts"
 )
 
-add_library(walnuts::walnuts ALIAS ${PROJECT_NAME})
+install(FILES
+  "${CMAKE_CURRENT_BINARY_DIR}/walnutsConfig.cmake"
+  "${CMAKE_CURRENT_BINARY_DIR}/walnutsConfigVersion.cmake"
+  DESTINATION lib/cmake/walnuts
+)
 
 ##########################
 ##       Example        ##
 ##########################
 if (WALNUTS_BUILD_EXAMPLES)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/examples)
+  add_executable(test_nuts ${CMAKE_CURRENT_SOURCE_DIR}/examples/test.cpp)
+  target_link_libraries(test_nuts PRIVATE Eigen3::Eigen walnuts::walnuts)
 endif()
 
 
 ##########################
-##       Testing        ##
+##       Extras         ##
 ##########################
-if (WALNUTS_BUILD_TESTS)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/tests)
-endif()
-
-##########################
-##      Benchmarks      ##
-##########################
-if (WALNUTS_BUILD_BENCHMARKS)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/benchmarks)
-endif()
-
-##########################
-## Performance Testing  ##
-##########################
-if (WALNUTS_BUILD_PERFORMANCE_TESTING)
-    add_subdirectory(${CMAKE_CURRENT_SOURCE_DIR}/perf_tests)
-endif()
-
-
-# Check if Doxygen is installed
-if (WALNUTS_BUILD_DOXYGEN)
-    set(Eigen_INCLUDE_DIR "${Eigen3_SOURCE_DIR}")
-    find_package(Doxygen)
-    if(DOXYGEN_FOUND)
-        # Set input and output files
-        set(DOXYGEN_IN ${CMAKE_CURRENT_SOURCE_DIR}/docs/Doxyfile.in)
-        set(DOXYGEN_OUT ${CMAKE_CURRENT_BINARY_DIR}/docs/Doxyfile)
-
-        # Request to configure the file
-        configure_file(${DOXYGEN_IN} ${DOXYGEN_OUT} @ONLY)
-        message(STATUS "Doxygen build started")
-
-        # Note: do not put 'ALL' keyword since you probably don't want documentation
-        # to be generated every time you build the project.
-        add_custom_target( doc_doxygen
-            COMMAND ${DOXYGEN_EXECUTABLE} ${DOXYGEN_OUT}
-            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-            COMMENT "Generating API documentation with Doxygen"
-            VERBATIM )
-    else()
-        message("Doxygen need to be installed to generate the doxygen documentation")
-    endif()
-endif()
-
-
-############################
-## Build Release Tarball  ##
-############################
-
-if (WALNUTS_BUILD_TARBALL)
-install(DIRECTORY "${FETCHCONTENT_BASE_DIR}/eigen/src/Eigen"
-        DESTINATION include/Eigen
-        FILES_MATCHING PATTERN "*.h")
-install(DIRECTORY "${CMAKE_SOURCE_DIR}/include/walnuts"
-        DESTINATION include/walnuts)
-include(CPack)
-set(CPACK_PACKAGE_NAME        walnuts)
-set(CPACK_PACKAGE_VERSION     ${PROJECT_VERSION})
-set(CPACK_SOURCE_GENERATOR    TGZ)       # .tar.gz; you can also add “ZIP”
-# ignore build‐dirs, git metadata, editor swap files, etc.
-set(CPACK_SOURCE_IGNORE_FILES
-    "/build/;/.git/;.gitignore$;~$"
-)
+if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extras/CMakeLists.txt")
+  add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/extras")
 endif()

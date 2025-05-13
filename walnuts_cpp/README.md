@@ -36,30 +36,15 @@ make -j3 test_nuts
 
 ```
 walnuts_cpp
-# For runnning google benchmark
-├── benchmarks
-│   ├── CMakeLists.txt
-│   └── normal_nuts.cpp
-# Global dependencies
-├── cmake_deps
-│   └── CMakeLists.txt
-├── CMakeLists.txt
-# Example of nuts
+├── cmake
+# Test Examples
 ├── examples
-│   ├── CMakeLists.txt
-│   ├── test_stan.cpp
-│   └── test.cpp
-# Headers for algorithms
+# Folder for optional dev tools
+├── extras
+# Headers for the library
 ├── include
 │   └── walnuts
-│       └── nuts.hpp
-# For automated perf tests
-├── perf_tests
-│   ├── CMakeLists.txt
-│   └── readme.md
-├── README.md
-└── tests
-    └── CMakeLists.txt
+└── README.md
 ```
 
 ## CMake Tips
@@ -75,9 +60,9 @@ To view the optional flags for cmake with this project call `cmake -S . -B "buil
 # along with their help comment
 cmake -S . -B "build" -LH | grep "WALNUTS" -B1
 # Output
-$ WALNUTS_BUILD_BENCHMARKS:BOOL=ON
-$ WALNUTS_BUILD_DOXYGEN:BOOL=OFF
-$ WALNUTS_BUILD_TESTS:BOOL=ON
+// Build the benchmarks target
+$ // Build the example targets for the library
+$ WALNUTS_BUILD_EXAMPLES:BOOL=ON
 ```
 
 ### Include Variables When Compiling
@@ -92,7 +77,7 @@ For an existing build you want to completely refresh use `--fresh` when building
 ```bash
 # /usr/bin/bash
 # From walnuts_cpp
-# Run a build but use --fresh to force 
+# Run a build but use --fresh to force
 # a hard reset of all cached variables
 cmake -S . -B "build" --fresh
 # All the cmake targets now exist in build
@@ -117,49 +102,18 @@ We can also use this to build from the top level directory
 # From walnuts_cpp
 # This will take longer as we include depedencies
 # google test and google benchmark
-cmake -S . -B "build" -DCMAKE_BUILD_TYPE=RELEASE -DWALNUTS_BUILD_TESTS=ON -DWALNUTS_BUILD_BENCHMARKS=ON
+cmake -S . -B "build" -DCMAKE_BUILD_TYPE=RELEASE
 # Now the build directory is setup and we we can build and run the benchmarks
-cmake --build build --parallel 3 --target normal_nuts
-# Now the benchmark is built in the build folder
-ls ./build
-# Now run the benchmark
-./build/benchmarks/normal_nuts
-```
-
-One benefit of `cmake --build` is that it abstracts away the underlying build system.
-For instance, if we have `ninja` installed locally we can use it with `--build` to make the target.
-
-```bash
-# /usr/bin/bash
-# From walnuts_cpp
-# Same as above but we use Ninja instead of make
-# For the underlying generator
-cmake -S . -B "build" -G Ninja -DCMAKE_BUILD_TYPE=RELEASE -DWALNUTS_BUILD_TESTS=ON -DWALNUTS_BUILD_BENCHMARKS=ON
-cmake --build build --parallel 3 --target normal_nuts
+cmake --build build --parallel 3 --target test_nuts
 ```
 
 When in the `build` directory you can call `cmake ..` to run cmake again.
 This is nice for refreshing variables with `cmake .. --fresh`
 
-### Debugging CMake
+### Debugging Options With CMake
 
 Setting `-DCMAKE_BUILD_TYPE=DEBUG` will make the make file generation verbose.
 For all other build types you can add `VERBOSE=1` to your make call to see a trace of the actions CMake performs.
-
-### Packaging For Release
-
-Use cpack to put the includes and third party libraries in one tar. These following code will create the tarballs with dependencies for releases.
-
-```bash
-# /usr/bin/bash
-# From walnuts_cpp
-# Setup and direct installs to happen in our build file
-cmake -S . -B "build" -DCMAKE_INSTALL_PREFIX=$PWD/build/install -DWALNUTS_BUILD_TARBALL=ON
-# Run the install locally
-cmake --build build --target install
-# Package everything into a tar.gz file
-cmake --build build --target package
-```
 
 ## Formatting
 

@@ -1,0 +1,10 @@
+# CMake Folders and Files
+build/
+# ignore everything in extras/
+extras/
+# except keep the .gitignore itself
+!/extras/.gitignore
+
+# Perf files
+/perf.data
+/perf.data.old

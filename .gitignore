@@ -9,10 +9,6 @@ __pycache__/
 # C extensions
 *.so
 
-# CMake Folders and Files
-walnuts_cpp/build/
-walnuts_cpp/**/CMakeFiles
-
 # Perf files
 /perf.data
 /perf.data.old
