@@ -17,64 +17,11 @@ endif()
 ## Cmake Options        ##
 ##########################
 option(WALNUTS_BUILD_EXAMPLES "Build the example targets for the library" ON)
-if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-    add_compile_options(-Wno-deprecated-declarations)
-endif()
+
 # Build Types
 set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE}
-    CACHE STRING "Choose the type of build, options are: None Debug Release RelWithDebInfo MinSizeRel tsan asan lsan msan ubsan"
+    CACHE STRING "Choose the type of build, options are: None Debug Release"
     FORCE)
-
-##########################
-## Sanitizer Options    ##
-##########################
-# ThreadSanitizer
-set(CMAKE_C_FLAGS_TSAN
-    "-fsanitize=thread -g -O1 -march=native -mtune=native"
-    CACHE STRING "Flags used by the C compiler during ThreadSanitizer builds."
-    FORCE)
-set(CMAKE_CXX_FLAGS_TSAN
-    "-fsanitize=thread -g -O1 -march=native -mtune=native"
-    CACHE STRING "Flags used by the C++ compiler during ThreadSanitizer builds."
-    FORCE)
-
-# AddressSanitize
-set(CMAKE_C_FLAGS_ASAN
-    "-fsanitize=address -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g -Og -march=native -mtune=native"
-    CACHE STRING "Flags used by the C compiler during AddressSanitizer builds."
-    FORCE)
-set(CMAKE_CXX_FLAGS_ASAN
-    "-fsanitize=address -fno-optimize-sibling-calls -fsanitize-address-use-after-scope -fno-omit-frame-pointer -g -Og -Wall -march=native -mtune=native"
-    CACHE STRING "Flags used by the C++ compiler during AddressSanitizer builds."
-    FORCE)
-
-# LeakSanitizer
-set(CMAKE_C_FLAGS_LSAN
-    "-fsanitize=leak -fno-omit-frame-pointer -g -O1"
-    CACHE STRING "Flags used by the C compiler during LeakSanitizer builds."
-    FORCE)
-set(CMAKE_CXX_FLAGS_LSAN
-    "-fsanitize=leak -fno-omit-frame-pointer -ggdb3 -O1"
-    CACHE STRING "Flags used by the C++ compiler during LeakSanitizer builds."
-    FORCE)
-if(APPLE)
-    set(CMAKE_CXX_FLAGS_DEBUG
-        "-fno-omit-frame-pointer -glldb -Og -DWALNUTS_DEBUG=true"
-        CACHE STRING "Flags used by the C++ compiler during Debug builds."
-        FORCE)
-else()
-    set(CMAKE_CXX_FLAGS_DEBUG
-        "-fno-omit-frame-pointer -ggdb3 -Og -DWALNUTS_DEBUG=true"
-        CACHE STRING "Flags used by the C++ compiler during Debug builds."
-        FORCE)
-endif()
-
-if (NOT CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
-  set(CMAKE_CXX_FLAGS_RELEASE
-      "-O3"
-      CACHE STRING "Flags used by the C++ compiler during Release builds."
-      FORCE)
-endif()
 
 ##########################
 ## Global Dependencies  ##
@@ -112,40 +59,6 @@ target_include_directories(walnuts INTERFACE
 
 # 2) Create the “namespace” alias
 add_library(walnuts::walnuts ALIAS walnuts)
-
-# 3) Installation rules
-install(TARGETS walnuts
-  EXPORT walnutsTargets
-  INCLUDES DESTINATION include
-)
-install(DIRECTORY include/ DESTINATION include)
-
-# 4) Export the targets file
-install(EXPORT walnutsTargets
-  FILE walnutsTargets.cmake
-  NAMESPACE walnuts::
-  DESTINATION lib/cmake/walnuts
-)
-
-# 5) Generate a simple package config that just pulls in the exported targets
-include(CMakePackageConfigHelpers)
-write_basic_package_version_file(
-  "${CMAKE_CURRENT_BINARY_DIR}/walnutsConfigVersion.cmake"
-  VERSION ${PROJECT_VERSION}
-  COMPATIBILITY SameMajorVersion
-)
-
-configure_package_config_file(
-  "${CMAKE_CURRENT_SOURCE_DIR}/cmake/walnutsConfig.cmake.in"
-  "${CMAKE_CURRENT_BINARY_DIR}/walnutsConfig.cmake"
-  INSTALL_DESTINATION "lib/cmake/walnuts"
-)
-
-install(FILES
-  "${CMAKE_CURRENT_BINARY_DIR}/walnutsConfig.cmake"
-  "${CMAKE_CURRENT_BINARY_DIR}/walnutsConfigVersion.cmake"
-  DESTINATION lib/cmake/walnuts
-)
 
 ##########################
 ##       Example        ##
