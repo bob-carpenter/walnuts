@@ -4,7 +4,15 @@ First, we are building and integrating NUTS.  Second, we will extend to WALNUTS.
 
 ## Compiling and running
 
-From the `walnuts_cpp` folder call the following for the benchmarks and testing.
+With your own version of Eigen, you can ignore the cmake and call the compiler as normal.
+
+```bash
+cd walnuts_cpp
+clang++ -std=c++17 -O3 -I lib/eigen-3.4.0 -I ./include ./examples/test.cpp -o test
+./test
+```
+
+Alternatively you can use the cmake setup.
 
 ```bash
 # /usr/bin/bash
