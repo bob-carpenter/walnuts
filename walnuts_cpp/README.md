@@ -56,7 +56,6 @@ To view the optional flags for cmake with this project call `cmake -S . -B "buil
 # along with their help comment
 cmake -S . -B "build" -LH | grep "WALNUTS" -B1
 # Output
-// Build the benchmarks target
 $ // Build the example targets for the library
 $ WALNUTS_BUILD_EXAMPLES:BOOL=ON
 ```
