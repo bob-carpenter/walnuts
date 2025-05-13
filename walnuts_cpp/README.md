@@ -29,22 +29,18 @@ make help
 #  It will only do this the first time you run
 #  a make command that depends on Eigen.
 make -j3 test_nuts
-./examples/test_nuts
+./test_nuts
 ```
 
 ## Structure
 
-```
+```bash
 walnuts_cpp
-├── cmake
-# Test Examples
-├── examples
-# Folder for optional dev tools
-├── extras
-# Headers for the library
-├── include
+├── cmake # Files for packaging the library
+├── examples # Test Examples
+├── extras # Folder for optional dev tools
+├── include # Headers for the library
 │   └── walnuts
-└── README.md
 ```
 
 ## CMake Tips
