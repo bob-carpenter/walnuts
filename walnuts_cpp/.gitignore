@@ -2,9 +2,9 @@
 build/
 # ignore everything in extras/
 extras/
-# except keep the .gitignore itself
-!/extras/.gitignore
-
+# except keep the .gitignore and readme.md
+!extras/.gitignore
+!extras/readme.md
 # Perf files
 /perf.data
 /perf.data.old
