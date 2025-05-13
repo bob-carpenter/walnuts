@@ -3,8 +3,15 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# vscode top level folder
+.vscode
+
 # C extensions
 *.so
+
+# Perf files
+/perf.data
+/perf.data.old
 
 # Distribution / packaging
 .Python
