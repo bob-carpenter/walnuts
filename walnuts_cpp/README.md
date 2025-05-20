@@ -16,7 +16,9 @@ Alternatively you can use the cmake setup.
 
 ```bash
 # /usr/bin/bash
-# Assumes you start in walnuts_cpp directory
+
+# Start in walnuts_cpp directory
+cd walnuts_cpp
 
 # Run cmake with
 # The source directory as our current directory (-S .)
