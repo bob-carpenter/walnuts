@@ -131,7 +131,7 @@ clang-format -i -style=Google *.hpp
 popd
 
 cd walnuts_cpp/examples/
-clang-format -i -style=Google *.hppcp 
+clang-format -i -style=Google *.cpp
 ```
 
 We chose Google largely style because it's compact.
