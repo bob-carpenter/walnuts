@@ -16,7 +16,9 @@ Alternatively you can use the cmake setup.
 
 ```bash
 # /usr/bin/bash
-# Assumes you start in walnuts_cpp directory
+
+# Start in walnuts_cpp directory
+cd walnuts_cpp
 
 # Run cmake with
 # The source directory as our current directory (-S .)
@@ -131,7 +133,7 @@ clang-format -i -style=Google *.hpp
 popd
 
 cd walnuts_cpp/examples/
-clang-format -i -style=Google *.hppcp 
+clang-format -i -style=Google *.cpp
 ```
 
 We chose Google largely style because it's compact.
