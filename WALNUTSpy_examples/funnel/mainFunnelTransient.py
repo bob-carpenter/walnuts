@@ -16,23 +16,12 @@ q0[0] = -30.0
 
 
 
-v = np.random.normal(size=11)
-lp0,g0 = td.funnel10(q0)
-H0 = -lp0 + 0.5*sum(v*v)
-h= 1.0e-7
-
-igrOut = ai.fixedLeapFrog(q0, v, g0, H0, h, 1, td.funnel10, 0.1, auxPar=ai.integratorAuxPar())
-
-vo = igrOut.v
-print(H0)
-print(-igrOut.lp + 0.5*sum(vo*vo))
-
 
 def gen(q):
     print(q[0])
     return(np.array([q[0],q[1]]))
 
-if(False):
+if(True):  # turn of for plotting only
     nIter = 1000
     samples,diagnostics,minorb,maxorb = wn.WALNUTS(td.funnel10, 
                               q0,
@@ -88,9 +77,5 @@ fig_size[0] = 14
 fig_size[1] = 7
 plt.rcParams["figure.figsize"] = fig_size
 plt.savefig("funnelTransient.pdf",)
-
-
-#plt.semilogy(np.arange(start=1,stop=301),0.3*(2.0**(-diagnostics[0:300,8])))
-#plt.semilogy(np.arange(start=1,stop=301),0.3*(2.0**(-diagnostics[0:300,9])))
 
 
