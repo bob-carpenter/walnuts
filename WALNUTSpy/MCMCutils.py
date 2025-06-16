@@ -23,4 +23,19 @@ def qqnormal(x,loc=0.0,scale=1.0,plot=False):
         plt.xlabel("theoretical quantiles")
         plt.ylabel("sample quantiles")
     return(xs,ys)
- 
+
+
+def igrErrStatHistogram(diagnostics,Nbins=50,plot=False):
+    statistics = np.abs(diagnostics[:,23])
+    centers = np.arange(Nbins)/(Nbins-1.0)
+    bw = centers[1]-centers[0]
+    bins = np.append(-0.5*bw + centers,1.0+0.5*bw)
+    hs,_ = np.histogram(statistics,bins=bins,density=True)
+    
+    
+    
+    if(plot):
+        plt.plot(centers,hs)
+    
+    return(centers,hs,bins)
+

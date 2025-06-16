@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Mar 10 16:56:00 2025
 
-@author: torekleppe
-"""
 
 import sys
 if(sys.path[-1].find("WALNUTSpy")==-1):
@@ -56,44 +50,4 @@ np.save("funnelOmax_FN", omax)
 
 
 
-
-
-
-# samples,diagnostics = wn.WALNUTS(td.funnel10, 
-#                               q0,
-#                               generated=gen,
-#                               integrator=wn.adaptLeapFrogD, 
-#                               M=12,H0=0.02,delta0=0.001,numIter=nIter,
-#                               warmupIter=0,
-#                               igrAux=wn.integratorAuxPar(),
-#                               revCheck=True
-#                               )
-# np.savetxt("samples_DRC.txt", np.transpose(samples))
-# np.savetxt("diagnostics_DRC.txt", diagnostics)
-
-
-# samples,diagnostics = wn.WALNUTS(td.funnel10, 
-#                               q0,
-#                               generated=gen,
-#                               integrator=wn.fixedLeapFrog, 
-#                               M=12,H0=0.02,delta0=0.001,numIter=nIter,
-#                               warmupIter=0,
-#                               revCheck=False
-#                               )
-# np.savetxt("samples_NUTS.txt", np.transpose(samples))
-# np.savetxt("diagnostics_NUTS.txt", diagnostics)
-
-
-
-# samples,diagnostics = wn.WALNUTS(td.funnel10, 
-#                               q0,
-#                               generated=gen,
-#                               integrator=wn.adaptLeapFrogR2P, # wn.adaptLeapFrogD, # 
-#                               M=12,H0=0.02,delta0=0.001,numIter=nIter,
-#                               warmupIter=0,
-#                               igrAux=wn.integratorAuxPar(),
-#                               revCheck=False
-#                               )
-# np.savetxt("samples_R2P.txt", np.transpose(samples))
-# np.savetxt("diagnostics_R2P.txt", diagnostics)
 
