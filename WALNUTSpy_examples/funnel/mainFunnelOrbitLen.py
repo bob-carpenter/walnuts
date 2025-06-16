@@ -1,10 +1,4 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
-"""
-Created on Wed Mar 26 11:36:16 2025
 
-@author: torekleppe
-"""
 
 
 import sys
