@@ -6,23 +6,10 @@ project(walnuts
 )
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED YES)
 if (CMAKE_BUILD_TYPE MATCHES DEBUG)
   set(CMAKE_VERBOSE_MAKEFILE YES)
-endif()
-
-##########################
-## Apple fix            ##
-##########################
-if(APPLE)
-  execute_process(
-    COMMAND xcrun --sdk macosx --show-sdk-path
-    OUTPUT_VARIABLE _sdk_dir
-    OUTPUT_STRIP_TRAILING_WHITESPACE
-  )
-  set(CMAKE_OSX_SYSROOT "${_sdk_dir}" CACHE STRING "macOS SDK root")
-  set(CMAKE_OSX_ARCHITECTURES "x86_64" CACHE STRING "Build for Intel")
 endif()
 
 ##########################
@@ -36,6 +23,27 @@ option(WALNUTS_BUILD_TESTS "Build the test targets for the library" ON)
 set(CMAKE_BUILD_TYPE ${CMAKE_BUILD_TYPE} CACHE STRING
     "Choose the type of build, options are: None Debug Release"
     FORCE)
+
+if (CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  # Enable -Weverything and other Clang-only warnings
+  # After no-c++98 warnings, rest are to suppress gtest warnings
+  add_compile_options(-Wall -Weverything -Wno-padded
+  -Wno-poison-system-directories -Wno-ctad-maybe-unsupported
+  -Wno-c++98-compat-pedantic -Wno-c++98-compat 
+  -Wno-global-constructors -Wno-exit-time-destructors
+  -Wno-covered-switch-default -Wno-switch-enum -Wno-weak-vtables
+  -Wno-zero-as-null-pointer-constant -Wno-switch-default
+  -Wno-missing-variable-declarations)
+
+  # Optionally enable IWYU if found
+  find_program(IWYU_PATH NAMES include-what-you-use iwyu)
+  if (IWYU_PATH)
+    set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE "${IWYU_PATH};-Xiwyu;--mapping_file=...")
+  else()
+    message(STATUS "include-what-you-use not found, skipping IWYU integration.")
+  endif()
+endif()
+
 
 ##########################
 ## Global Dependencies  ##
@@ -166,3 +174,28 @@ if (CLANG_FORMAT_BIN)
 else()
   message(WARNING "clang-format not found. 'format' target will not be available.")
 endif()
+
+##########################
+##     Doxygen Docs     ##
+##########################
+#################################
+##        Documentation        ##
+#################################
+find_package(Doxygen REQUIRED)
+
+# Public headers only
+file(GLOB_RECURSE WALNUT_HEADERS
+     "${CMAKE_CURRENT_SOURCE_DIR}/include/walnuts/*.hpp")
+
+# Doxygen configuration overrides
+set(DOXYGEN_FILE_PATTERNS    "*.hpp")
+set(DOXYGEN_GENERATE_HTML    YES)
+set(DOXYGEN_GENERATE_LATEX   NO)
+set(DOXYGEN_EXTRACT_ALL YES)
+
+# `cmake --build . --target doc`
+doxygen_add_docs(
+  doc                         # target name
+  ${WALNUT_HEADERS}           # INPUT files
+  COMMENT "Generate API documentation in ${DOXYGEN_OUTPUT_DIRECTORY}"
+)
