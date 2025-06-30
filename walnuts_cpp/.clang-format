@@ -1,5 +1,0 @@
-BasedOnStyle: Google
-InsertBraces: true
-AlwaysBreakBeforeMultilineStrings: false
-AllowShortIfStatementsOnASingleLine: false
-IncludeBlocks: Preserve
