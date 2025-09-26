@@ -136,6 +136,112 @@ def adaptLeapFrogD(q,v,g,Ham0,h,xi,lpFun,delta,auxPar):
                             (If!=Ib)*__logZero,
                             igrConst)
 
+
+
+# adaptive Leap Frog with Deterministic choice of precsion parameter
+def adaptYoshidaD(q,v,g,Ham0,h,xi,lpFun,delta,auxPar):
+    firstLast = 1.351207191959658
+    middle = -1.702414383919315
+    nEvalF = 0
+    If = auxPar.maxC
+    for c in range(auxPar.minC,auxPar.maxC+1):
+        nstep = 2**c
+        hh = h/nstep
+        qq = q
+        vv = xi*v
+        gg = g
+        Hams = np.zeros(nstep+1)
+        Hams[0] = Ham0
+        
+        for i in range(1,nstep+1):
+            vh = vv + 0.5*firstLast*hh*gg
+            qq = qq + firstLast*hh*vh
+            fnew,gg = lpFun(qq)
+            nEvalF += 1
+            vv = vh + 0.5*firstLast*hh*gg
+            
+            vh = vv + 0.5*middle*hh*gg
+            qq = qq + middle*hh*vh
+            fnew,gg = lpFun(qq)
+            nEvalF += 1
+            vv = vh + 0.5*middle*hh*gg
+            
+            vh = vv + 0.5*firstLast*hh*gg
+            qq = qq + firstLast*hh*vh
+            fnew,gg = lpFun(qq)
+            nEvalF += 1
+            vv = vh + 0.5*firstLast*hh*gg
+            
+            Hams[i] = -fnew + 0.5*sum(vv*vv)
+        
+        #maxErr = np.max(Hams) - np.min(Hams)
+        maxErr = abs(Hams[0]-Hams[-1])
+        #print(Hams)
+        #print(maxErr)
+        
+        
+        if(all(np.isfinite(Hams)) and maxErr < delta):
+            If = c
+            break
+    
+    qOut = qq
+    vOut = vv
+    fOut = fnew
+    gOut = gg
+    
+    igrConst = hh*(np.max(np.abs(np.diff(Hams)))**(-1.0/3.0))
+    
+    
+    Ib = If
+    nEvalB = 0
+
+    if(If>auxPar.minC):
+    
+        
+        H0b = Hams[-1]
+        for c in range(auxPar.minC,If):
+            nstep = 2**c
+            hh = h/nstep
+            qq = qOut
+            vv = -vOut
+            gg = gOut
+            Hams = np.zeros(nstep+1)
+            Hams[0] = H0b
+            
+            for i in range(1,nstep+1):
+                vh = vv + 0.5*firstLast*hh*gg
+                qq = qq + firstLast*hh*vh
+                fnew,gg = lpFun(qq)
+                nEvalB += 1
+                vv = vh + 0.5*firstLast*hh*gg
+                
+                vh = vv + 0.5*middle*hh*gg
+                qq = qq + middle*hh*vh
+                fnew,gg = lpFun(qq)
+                nEvalB += 1
+                vv = vh + 0.5*middle*hh*gg
+                
+                vh = vv + 0.5*firstLast*hh*gg
+                qq = qq + firstLast*hh*vh
+                fnew,gg = lpFun(qq)
+                nEvalB += 1
+                vv = vh + 0.5*firstLast*hh*gg
+                Hams[i] = -fnew + 0.5*sum(vv*vv)
+            
+            #maxErr = np.max(Hams) - np.min(Hams)
+            maxErr = abs(Hams[0]-Hams[-1])
+            if(all(np.isfinite(Hams)) and maxErr < delta):
+                Ib = c
+                break    
+    
+    #print(If,"  ",Ib)
+    return integratorReturn(qOut,xi*vOut,fOut,gOut,nEvalF,nEvalB,If,Ib,If,
+                            (If!=Ib)*__logZero,
+                            igrConst)
+
+
+
+
 # adaptive Leap Frog with Deterministic choice of precsion parameter and flow-based error criterion
 def adaptLeapFrogFlowD(q,v,g,Ham0,h,xi,lpFun,delta,auxPar):
     
