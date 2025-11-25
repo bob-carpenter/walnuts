@@ -31,6 +31,9 @@ class HMCstate:
     def momentumFlip(self):
         self.p = -self.p
     
+    def velocity(self):
+        return(self.p)
+    
     def __str__(self):
         return ("MCState class:\nq: " + str(self.q) + "\np: " + str(self.p) + "\nHamiltonian: " + str(self.Ham))
 

@@ -1,5 +1,5 @@
 import numpy as np
-
+import scipy.stats as sps
 
 
 # distribution q[0] \sim N(0,1), q[1]|q[0] \sim N(q[0]^2,1)
@@ -68,3 +68,52 @@ def modFunnel(q,v=None):
         return lp,grad,np.matmul(H,v)
 
 
+
+def zeroMeanAR1(q):
+    rho = 0.95
+    d = len(q)
+    lp = -0.5*q[0]**2 - 0.5/(1.0-rho**2)*np.sum((q[1:d]-rho*q[0:(d-1)])**2)
+    g = np.zeros_like(q)
+    g[0] = q[0]-rho*q[1]
+    g[1:(d-1)] = (1.0+rho**2)*q[1:(d-1)] - rho*(q[0:(d-2)] + q[2:d])
+    g[-1] = q[-1] - rho*q[-2]
+    g*=(1.0/(rho**2-1.0))
+    
+    return(lp,g)
+
+
+def illCondGauss(q):
+    mag = 30.0
+    d = len(q)
+    vrs = np.exp(2.0*np.linspace(start=np.log(1.0/mag), stop=np.log(mag),num=d))
+    lp = 0.5*np.sum(-q**2/vrs)
+    g = -q/vrs
+    return(lp,g)
+
+
+def mvt4(q):
+    nu = 4.0
+    d = len(q)
+    fac = 1.0 + np.dot(q,q)/nu
+    lp = -0.5*(nu+d)*np.log(fac)
+    g = -((nu+d)/(nu*fac))*q
+    return(lp,g)
+    
+    
+    
+def funnel10(q,hessian=False):
+    lp=sps.norm.logpdf(q[0],loc=0.0,scale=3.0) + sum(sps.norm.logpdf(q[1:11],loc=0.0,scale=np.exp(0.5*q[0])))
+    grad=np.r_[np.array([-5.0-q[0]/9.0 + 0.5*np.exp(-q[0])*sum(q[1:11]*q[1:11])])
+               ,-q[1:11]*np.exp(-q[0])]
+    return [lp,grad]
+
+
+def funnel10rescaled(q,hessian=False):
+    S = np.ones(11)
+    S[0] = 3.0
+    qb = S*q
+    lp,g = funnel10(qb)
+    return [lp,S*g]
+    
+    
+    
